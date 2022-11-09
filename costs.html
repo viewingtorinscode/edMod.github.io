@@ -393,7 +393,7 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.3.0b";
+            let currentVersion = "v4.3.0c";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
@@ -5189,7 +5189,7 @@ getId("woogleButton").onclick = function() {showMap();}
                         let awakened = enemies.filter(x=>x.hasBuff("Unawakened"))[0];
                         awakened.hp = awakened.maxHp;
                         awakened.gainBuff("Stunned", 1);
-                        awakened.clearDebuffs();
+                        for(let d of debuffs) {awakened.loseBuff(d);}
                         awakened.loseBuff("Curiosity");
                         awakened.loseBuff("Unawakened");
                     }
@@ -5543,7 +5543,7 @@ getId('relicReward').style.display = 'none';
                         }
                         if(e.hasBuff("Healer") && e.hp < 0.5 * e.maxHp) {
                             e.hp = Math.ceil(0.5 * maxHp);
-                            e.clearDebuffs();
+                            for(let d of debuffs) {e.loseBuff(d);}
                             e.loseBuff("Healer");
                             continue;
                         }
