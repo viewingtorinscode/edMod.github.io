@@ -395,7 +395,7 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.3.1";
+            let currentVersion = "v4.3.2";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
@@ -903,7 +903,7 @@ if(multiChoice.includes(num)) {
                     if(played) {
                         hand.splice(hand.indexOf(this), 1);
                         if(this.flags.includes("exhausted") || (hasBuff("Corruption") && this.type == "Skill")) {
-                            exhaustPile.push(this);
+                            if(relics.map(x=>x.name).includes("Strange Spoon") && this.type != "Power" && Math.random < 0.5) {discardPile.push(this);} else {exhaustPile.push(this);}
                             drawCard(hasBuff("Dark Embrace"));
                             gainBuff("Block", hasBuff("Feel No Pain"));
                             ifRelic("Dead Branch", function(){hand.push(randCard())});
@@ -1100,6 +1100,7 @@ if(multiChoice.includes(num)) {
                     
                     if(dealt > 0) {
                         if(stats.timesLostHp == 0) {ifRelic("Centennial Puzzle", function(){drawCard(3)})}
+                        ifRelic("Runic Cube", function(){drawCard(1)});
                         stats.timesLostHp++;
                         ifRelic("Self-Forming Clay", function(){gainBuff("Next Turn Block", 3)});
                         for(let i of [...drawPile, ...hand, ...discardPile]) {
@@ -1503,7 +1504,7 @@ updateStatLine();
                     }
                     getId("merchantScreen").innerHTML += "<br/>";
                     for(let i=0; i<3; i++) {
-                        let offer = choice(choice(relicPool), choice(relicPool), choice(rareRelicPool));
+                        let offer = choice(shopRelicPool);
                         let relicCost = Math.round(Math.random()*119 + 143);
                         ifRelic("Membership Card", function(){relicCost = Math.round(relicCost / 2)});
                         offers.push({index: i+100, price: relicCost, offer: offer});
@@ -1576,7 +1577,7 @@ updateStatLine();
                             choices: [
                                 ["Open", "Gain gold and a random relic.", `
 gold += Math.round(Math.random()*10) + 24;
-let r = choice(choice(relicPool), choice(relicPool), choice(rareRelicPool));
+let r = randRelic();
 relics.push(r);
 onRelicPickup(r);
 updateStatLine();
@@ -3034,16 +3035,14 @@ getId("woogleButton").onclick = function() {showMap();}
                     }
                 }
             }
-            let relicPool = [
-                // Common
+            let commonRelicPool = [
+                // Vanilla
                 {name: "Akabeko", desc: "Your first attack each combat deals 8 more damage."},
-                {name: "Aluminum Foil", desc: "Card rewards are more likely to be rare and upgraded."},
                 {name: "Anchor", desc: "Start each combat with 10 Block."},
                 {name: "Ancient Tea Set", desc: "When you leave a Rest Site, start the next combat with 2 more energy."},
                 {name: "Art of War", desc: "If you play no Attacks in a turn, gain 1 more Energy next turn."},
                 {name: "Bag of Marbles", desc: "ALL enemies start combat with 1 Vulnerable."},
                 {name: "Bag of Preparation", desc: "At the start of each combat, draw 2 more cards."},
-                {name: "Ball Bearing", desc: "When you shuffle your deck, add a Flash of Steel into it.<br/><i>(Flash of Steel: Costs 0 energy. Deal 3 damage. Draw 1 card.)</i>"},
                 {name: "Blood Vial", desc: "At the start of each combat, heal 2 HP."},
                 {name: "Bronze Scales", desc: "When you take damage, deal 3 back."},
                 {name: "Centennial Puzzle", desc: "The first time you lose HP each combat, draw 3 cards."},
@@ -3070,7 +3069,11 @@ getId("woogleButton").onclick = function() {showMap();}
                 {name: "Vajra", desc: "Start each combat with 1 Strength."},
                 {name: "War Paint", desc: "On pickup, upgrade 2 random Skills."},
                 {name: "Whetstone", desc: "On pickup, upgrade 2 random Attacks."},
-                // Uncommon
+                // Reliquary
+                {name: "Aluminum Foil", desc: "Card rewards are more likely to be rare and upgraded."},
+                {name: "Ball Bearing", desc: "When you shuffle your deck, add a Flash of Steel into it.<br/><i>(Flash of Steel: Costs 0 energy. Deal 3 damage. Draw 1 card.)</i>"}
+            ];
+            let uncommonRelicPool = [
                 {name: "Blue Candle", desc: "Curses can now be played. They cost 0 and will make you lose 1 HP and Exhaust them."},
                 {name: "Bottled Flame", desc: "On pickup, choose an Attack. Start each combat with it in hand."},
                 {name: "Bottled Lightning", desc: "On pickup, choose an Skill. Start each combat with it in hand."},
@@ -3091,15 +3094,17 @@ getId("woogleButton").onclick = function() {showMap();}
                 {name: "Ornamental Fan", desc: "When you play 3 Attacks in a turn, gain 4 Block."},
                 {name: "Pantograph", desc: "Heal 25 HP at the start of Boss combats."},
                 {name: "Pear", desc: "On pickup, gain 10 max HP."},
+                {name: "Self-Forming Clay", desc: "When you lose HP in combat, gain 3 Block next turn."},
                 {name: "Shuriken", desc: "When you play 3 Attacks in a turn, gain 1 Strength."},
                 {name: "Singing Bowl", desc: "When you view and skip the card reward, gain 2 max HP."},
                 {name: "Strike Dummy", desc: "Strikes deal 3 more damage."},
                 {name: "Sundial", desc: "When you shuffle your deck, gain 1 energy."},
                 {name: "Teardrop Locket", desc: "Start each combat in Calm."},
                 {name: "Toxic Egg", desc: "When you add a Skill to your deck, upgrade it."},
-                {name: "White Beast Statue", desc: "Potions always drop after combat."},
-                {name: "Self-Forming Clay", desc: "When you lose HP in combat, gain 3 Block next turn."},
-                // Shop
+                {name: "White Beast Statue", desc: "Potions always drop after combat."}
+            ];
+            let shopRelicPool = [
+                {name: "Brimstone", desc: "At the start of your turn, gain 2 Strength and ALL enemies gain 1 Strength."},
                 {name: "Cauldron", desc: "On pickup, gain 3 random potions. Can go above potion limit."},
                 {name: "Chemical X", desc: "Cards that cost X repeat their effect 2 more times."},
                 {name: "Clockwork Souvenir", desc: "Start each combat with 1 Artifact."},
@@ -3108,8 +3113,13 @@ getId("woogleButton").onclick = function() {showMap();}
                 {name: "Hand Drill", desc: "Whenever you break enemy block, apply 2 Vulnerable."},
                 {name: "Lee’s Waffle", desc: "On pickup, raise max HP by 7 and heal ALL of your HP."},
                 {name: "Medical Kit", desc: "Whenever you would draw a Status, Exhaust it instead."},
+                {name: "Melange", desc: "Whenever you shuffle your draw pile, scry 3."},
                 {name: "Membership Card", desc: "50% discount on shop relics and cards."},
-                {name: "Orange Pellets", desc: "When you play an Attack, Skill, and Power in the same turn, remove your debuffs."}
+                {name: "Orange Pellets", desc: "When you play an Attack, Skill, and Power in the same turn, remove your debuffs."},
+                {name: "Sling of Courage", desc: "Start each Elite combat with 2 Strength."},
+                {name: "Strange Spoon", desc: "Non-Power cards that Exhaust when played have a 50% chance to be discarded instead."},
+                {name: "The Abacus", desc: "Whenever you shuffle your draw pile, gain 6 Block."},
+                {name: "Twisted Funnel", desc: "At the start of each combat, apply 4 Poison to ALL enemies."}
             ];
             let rareRelicPool = [
                 {name: "Bird-Faced Urn", desc: "When you play a Power, heal 2 HP."},
@@ -3141,6 +3151,7 @@ getId("woogleButton").onclick = function() {showMap();}
                 {name: "Fusion Hammer", desc: "+1 Max Energy. You can no longer smith at rest sites."},
                 {name: "Pandora’s Box", desc: "On pickup, transform all Strikes and Defends."},
                 {name: "Philosopher’s Stone", desc: "+1 Max Energy. ALL enemies start combat with 1 Strength."},
+                {name: "Runic Cube", desc: "Whenever you lose HP, draw a card."},
                 {name: "Runic Dome", desc: "+1 Max Energy. You can no longer see enemy intents."},
                 {name: "Runic Pyramid", desc: "At the end of your turn, you no longer discard your hand."},
                 {name: "Sacred Bark", desc: "Double the effects of potions."},
@@ -3155,7 +3166,7 @@ getId("woogleButton").onclick = function() {showMap();}
                 {name: "Violet Lotus", desc: "Whenever you exit Calm, gain an additional energy."},
                 {name: "Wrist Blade", desc: "Shivs deal 6 additional damage."}
             ];
-            
+            let randRelic = () => choice(commonRelicPool, commonRelicPool, commonRelicPool, uncommonRelicPool, uncommonRelicPool, rareRelicPool);
             async function onRelicPickup(r) {
                 if(r.name == "Strawberry") {maxHp += 7; hp += 7;}
                 if(r.name == "Lee’s Waffle") {maxHp += 7; hp = maxHp;}
@@ -3261,7 +3272,7 @@ getId("woogleButton").onclick = function() {showMap();}
                             ["Give Potion", "Trade one of your potions for a random relic.", `
 if(!potions.length) {return;}
 potions.splice(Math.floor(Math.random()*potions.length), 1);
-let r = choice(choice(relicPool), choice(relicPool), choice(rareRelicPool));
+let r = randRelic();
 relics.push(r);
 onRelicPickup(r);
 updateStatLine();
@@ -3272,7 +3283,7 @@ getId("woogleButton").onclick = function() {showMap();}
                             ["Give Gold", "Trade 100 gold for a random relic.", `
 if(gold < 100) {return;}
 gold -= 100;
-let r = choice(choice(relicPool), choice(relicPool), choice(rareRelicPool));
+let r = randRelic();
 relics.push(r);
 onRelicPickup(r);
 updateStatLine();
@@ -3453,7 +3464,7 @@ getId("eventChoices").innerHTML = "<button id=woogleButton>Leave</button>";
 getId("woogleButton").onclick = function() {showMap();}
                             `],
                             ["Box", "Obtain a random relic, but gain Regret.<br/><i>(Regret: Unplayable. At the end of your turn, lose 1 HP per card in your hand.)</i>", `
-let r = choice(choice(relicPool), choice(relicPool), choice(rareRelicPool));
+let r = randRelic();
 relics.push(r);
 onRelicPickup(r);
 deck.push(new Card("Regret", 0, "Curse", "Unplayable. At the end of your turn, lose 1 HP per card in your hand.", function(enemy){}, ["unplayable"]));
@@ -3503,7 +3514,7 @@ while(red > 0) {
     if(red < 0) {setTimeout(function(){getId("damage").style.opacity = 0;}, i * 10);}
 }
 if(Math.random() < relicChance * 0.01) {
-    let r = choice(choice(relicPool), choice(relicPool), choice(rareRelicPool));
+    let r = randRelic();
     relics.push(r);
     onRelicPickup(r);
     getId("eventDesc").innerHTML = "Success! You found a relic inside the slime!";
@@ -3710,7 +3721,7 @@ getId("woogleButton").onclick = function() {showMap();}
                             ["Give", "Obtain a random relic. Give 85 gold.", `let fun = async function(){
 if(gold < 85) {return;}
 gold -= 85;
-let r = choice(choice(relicPool), choice(relicPool), choice(rareRelicPool));
+let r = randRelic();
 relics.push(r);
 onRelicPickup(r);
 getId("eventDesc").innerHTML = "“Oh yes! Here here, a fair trade!”";
@@ -3718,7 +3729,7 @@ getId("eventChoices").innerHTML = "<button id=woogleButton>Leave</button>";
 getId("woogleButton").onclick = function() {showMap();}
                             }; fun();`],
                             ["Rob", "Obtain a random relic, but gain Shame.<br/><i>(Shame: Unplayable. When drawn, gain 1 Weak.)</i>", `
-let r = choice(choice(relicPool), choice(relicPool), choice(rareRelicPool));
+let r = randRelic();
 relics.push(r);
 onRelicPickup(r);
 deck.push(new Card("Shame", 0, "Curse", "Unplayable. When drawn, gain 1 Weak.", function(enemy){}, ["unplayable"]));
@@ -3880,7 +3891,7 @@ getId("woogleButton").onclick = function() {showMap();}
             
             // Starting deck, relics, etc...
             let deck = [bash(), strike(), strike(), strike(), neutralize(), defend(), defend(), defend(), eruption(), vigilance()];
-            let relics = [{name: "Snake Ring", desc: "At the start of each combat, draw 2 more cards."}];
+            let relics = [{name: "Snake Ring", desc: "At the start of each combat, draw 2 more cards."},{name: "Sundial", desc: "At the start of each combat, draw 2 more cards."}];
             let potions = [];
             let drawPile = shuffle(deck.slice(0)); // no shallow copy //
             let discardPile = [];
@@ -5186,7 +5197,7 @@ getId("woogleButton").onclick = function() {showMap();}
                     enemiesElem.appendChild(enemyElem);
                     enemiesElem.appendChild(document.createElement("br"));
                 }
-                if(enemies.filter(x => x.hp <= 0).length > 0) {
+                if(enemies.filter(x => x.hp <= 0).length) {
                     if(enemies.filter(x => x.hp <= 0 && x.hasBuff("Unawakened")).length) {
                         let awakened = enemies.filter(x=>x.hasBuff("Unawakened"))[0];
                         awakened.hp = awakened.maxHp;
@@ -5254,7 +5265,7 @@ getId("woogleButton").onclick = function() {showMap();}
                     }
                     if(eliteBattle && !relics.map(x=>x.name).includes("N’loth’s Hungry Face")) {
                         getId("relicReward").style.display = "block";
-                        let newRelic = choice(choice(relicPool), choice(relicPool), choice(rareRelicPool));
+                        let newRelic = randRelic();
                         getId("relicReward").innerHTML = newRelic.name+"<span class='txt'>"+newRelic.desc+"</span>";
                         getId("relicReward").setAttribute("onclick", `
 let r = ${JSON.stringify(newRelic)};
@@ -5340,15 +5351,17 @@ getId('relicReward').style.display = 'none';
                 for(let x=0; x<num; x++) {
                     if(drawPile.length <= 0) {
                         ifRelic("Ball Bearing", function(){
-                            discardPile.push(new Card("Flash of Steel", 0, "Attack", "Deal [DAM3] damage. Draw a card", function(e){
+                            discardPile.push(new Card("Flash of Steel", 0, "Attack", "Deal [DAM3] damage. Draw a card.", function(e){
                                 dealDamage(e, 3); drawCard();
                             }));
                         });
                         drawPile = shuffle(discardPile);
                         discardPile = [];
-                        ifRelic("Sundial", function(){energy++});
+                        ifRelic("Sundial", function(){energy++;gainBuff("Temp Energy", 1);});
+                        ifRelic("The Abacus", function(){gainBuff("Block", 6);});
+                        ifRelic("Melange", function(){scry(3)});
                     }
-                    if(drawPile.length > 0 && hand.length < 10) {
+                    if(drawPile.length && hand.length < 10) {
                         let toDraw = drawPile.pop(0);
                         if(hasBuff("Confused")) {
                             toDraw.flags.push("nextcost "+toDraw.cost);
@@ -5392,6 +5405,8 @@ getId('relicReward').style.display = 'none';
                     ifRelic("Snecko Eye", function(){gainBuff("Confused", 1);});
                     ifRelic("Holy Water", function(){hand.push(new Card("Miracle+", 0, "Skill", "Retain. Gain 2 energy. Exhaust.", function(enemy){energy += 2;}, ["exhausted", "retain"]))});
                     ifRelic("Clockwork Souvenir", function(){gainBuff("Artifact", 1);});
+                    if(eliteBattle) {ifRelic("Sling of Courage", function(){gainBuff("Strength", 2);});}
+                    ifRelic("Twisted Funnel", function(){for(let e of enemies) {e.gainBuff("Poison", 4)}});
                 }
                 if(turn == 1) {ifRelic("Horn Cleat", function(){gainBuff("Block", 14)})}
                 if(turn == 2) {ifRelic("Captain’s Wheel", function(){gainBuff("Block", 18)})}
@@ -5399,6 +5414,7 @@ getId('relicReward').style.display = 'none';
                 getId("turnEnder").innerHTML = "<span style='text-decoration:underline'>E</span>nd turn "+turn;
                 ifRelic("Mercury Hourglass", function(){for(let e of enemies){dealDamage(e, 3)}});
                 ifRelic("Damaru", function(){gainBuff("Mantra", 1);});
+                ifRelic("Brimstone", function(){for(let e of enemies){e.gainBuff("Strength", 1)} gainBuff("Strength", 2);});
                 scry(hasBuff("Foresight"));
                 if(hasBuff("Simmering Fury")) {gainBuff("Wrath", 1); loseBuff("Simmering Fury");}
                 if(hasBuff("Draw Reduction")) {
@@ -5423,7 +5439,8 @@ getId('relicReward').style.display = 'none';
                     loseBuff("Collect", 1);
                 }
                 ifRelic("Ice Cream", function(){gainBuff("Next Turn Energy", energy);});
-                energy = maxEnergy + hasBuff("Berserk") + hasBuff("Next Turn Energy") - hasBuff("Fasting") + hasBuff("Deva Form");
+                energy = maxEnergy + hasBuff("Berserk") + hasBuff("Temp Energy") + hasBuff("Next Turn Energy") - hasBuff("Fasting") + hasBuff("Deva Form");
+                loseBuff("Temp Energy");
                 if(hasBuff("Deva Form")) {gainBuff("Deva Form", 1);}
                 if(stats.rested) {ifRelic("Ancient Tea Set", function(){energy += 2});}
                 if(turn % 3 == 0) {ifRelic("Happy Flower", function(){energy++});}
@@ -5532,14 +5549,14 @@ getId('relicReward').style.display = 'none';
                         if(e.name == "Large Acid Slime" && e.hp <= 0.5 * e.maxHp) {
                             enemies.unshift(acidSlimeM());
                             enemies.unshift(acidSlimeM());
-                            for(let i of enemies) {i.hp = e.hp; i.maxHp = e.hp;}
+                            for(let i of enemies.filter(x=>x.name=="Medium Acid Slime")) {i.hp = e.hp; i.maxHp = e.hp;}
                             e.hp = 0;
                             continue;
                         }
-                        if(e.name == "Large Acid Slime" && e.hp <= 0.5 * e.maxHp) {
+                        if(e.name == "Large Spike Slime" && e.hp <= 0.5 * e.maxHp) {
                             enemies.unshift(spikeSlimeM());
                             enemies.unshift(spikeSlimeM());
-                            for(let i of enemies) {i.hp = e.hp; i.maxHp = e.hp;}
+                            for(let i of enemies.filter(x=>x.name=="Medium Spike Slime")) {i.hp = e.hp; i.maxHp = e.hp;}
                             e.hp = 0;
                             continue;
                         }
