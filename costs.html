@@ -384,7 +384,9 @@ Credits (in order of importance):
             let getId = x => document.getElementById(x);
             getId("turnEnder").onclick = () => endTurn();
             let choice = function(...arg) {
-                let x = arg.flat();
+                //alert("Arg="+JSON.stringify(arg));
+                let x = (arg.length == 1 ? arg[0] : choice(arg));
+                //alert("X="+JSON.stringify(x));
                 return x[Math.floor(Math.random()*x.length)];
             }
             
@@ -393,7 +395,7 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.3.0c";
+            let currentVersion = "v4.3.1";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
