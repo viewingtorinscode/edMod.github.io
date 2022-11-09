@@ -393,7 +393,7 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.3";
+            let currentVersion = "v4.3.0b";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
@@ -1828,9 +1828,8 @@ getId("woogleButton").onclick = function() {showMap();}
                     updateHtml();
                 }
             }, ["exhausted"]);
-            let feed = () => new Card("Feed", 1, "Skill", "Enemy loses 10 HP. If they die from it, gain 3 Max HP. Exhaust.", function(enemy){
-                if(enemy.hp <= 10) {maxHp += 3; hp += 3;}
-                enemy.hp -= 10;
+            let feed = () => new Card("Feed", 1, "Attack", "Deal [DAM10] damage. If the enemy dies from it, gain 3 Max HP. Exhaust.", function(enemy){
+                if(calcYourDamage(enemy, 10) >= enemy.hp) {maxHp += 3; hp += 3;} dealDamage(enemy, 10);
             }, ["exhausted"]);
             let impervious = () => new Card("Impervious", 2, "Skill", "Gain [BLK30] Block. Exhaust.", function(enemy){
                 gainBuff("Block", 30);
@@ -2470,9 +2469,8 @@ getId("woogleButton").onclick = function() {showMap();}
                         exhaustPile.splice(exhaustPile.indexOf(chosen), 1);
                         updateHtml();
                     }
-                }, ["exhausted"]), "Feed": () => new Card("Feed+", 1, "Attack", "Enemy loses 12 HP. If they die from it, gain 4 Max HP. Exhaust.", function(enemy){
-                    if(enemy.hp <= 12) {maxHp += 4; hp += 4;}
-                    enemy.hp -= 12;
+                }, ["exhausted"]), "Feed": () => new Card("Feed+", 1, "Attack", "Deal [DAM12] damage. If the enemy dies from it, gain 4 Max HP. Exhaust.", function(enemy){
+                    if(calcYourDamage(enemy, 12) >= enemy.hp) {maxHp += 4; hp += 4;} dealDamage(enemy, 12);
                 }, ["exhausted"]), "Impervious": () => new Card("Impervious+", 2, "Skill", "Gain [BLK40] Block. Exhaust.", function(enemy){
                     gainBuff("Block", 40);
                 }, ["exhausted"]), "Juggernaut": () => new Card("Juggernaut+", 2, "Power", "Whenever you gain Block, deal [DAM7] damage to a random enemy.", function(enemy){
@@ -2481,8 +2479,8 @@ getId("woogleButton").onclick = function() {showMap();}
                     if(hasBuff("Strength")) {gainBuff("Strength", hasBuff("Strength"));}
                 }), "Offering": () => new Card("Offering+", 0, "Skill", "Lose 6 HP. Gain 2 energy. Draw 5 cards. Exhaust.", function(enemy){
                     hp -= 6; energy += 2; drawCard(5);
-                }, ["exhausted"]), "Reaper": () => new Card("Reaper+", 2, "Attack", "Deal [DAM10] damage. Heal 10 HP. Exhaust.", function(enemy){
-                    dealDamage(enemy, 10); hp = Math.min(maxHp, hp + 10);
+                }, ["exhausted"]), "Reaper": () => new Card("Reaper+", 2, "Attack", "Deal [DAM10] damage. Heal that much HP. Exhaust.", function(enemy){
+                    hp = Math.min(maxHp, hp + calcYourDamage(enemy, 10)); dealDamage(enemy, 10);
                 }, ["exhausted"]), "Corruption": () => new Card("Corruption+", 2, "Power", "Skills cost 0. Whenever you play a Skill, exhaust it.", function(enemy) {
                 gainBuff("Corruption", 1);
             }, ["exhausted"]), "Acrobatics": () => new Card("Acrobatics+", 1, "Skill", "Draw 4 cards. Discard 1 card.", async function(enemy){
