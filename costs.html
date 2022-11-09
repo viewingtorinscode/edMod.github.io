@@ -318,6 +318,7 @@ Themes:
 Credits (in order of importance):
 * MegaCrit
 * ToasterOven<span style="color: #aaa">#????</span>
+* edwin123123<span style="color: #aaa">#????</span>
 * A bunch of people at WSMS
             </pre>
         </div>
@@ -329,7 +330,7 @@ Credits (in order of importance):
                     <span id="energy" class="tt"></span>&nbsp;&nbsp;&nbsp;<span id="hand"></span>
                     <br /><br />
                     <button id="discardPile" onclick='d=discardPile.map(x=>x.name);o={};for(let i of d){if(Object.keys(o).includes(i)){o[i]++;}else{o[i]=1;}}t=[];for(let i of Object.keys(o).sort()){t.push([i,o[i]]);}T=t.map(x=>x[1]+"x "+x[0]).join("\n");showPopup(T);'>View D<span style="text-decoration:underline">i</span>scard Pile</button>
-                    <button id="drawPile" onclick='d=drawPile.map(x=>x.name);o={};for(let i of d){if(Object.keys(o).includes(i)){o[i]++;}else{o[i]=1;}}t=[];for(let i of Object.keys(o).sort()){t.push([i,o[i]]);}T=t.map(x=>x[1]+"x "+x[0]).join("\n");showPopup(T);'>View Draw <span style="text-decoration:underline">P</span>ile</button>
+                    <button id="drawPile" onclick='d=drawPile.map(x=>x.name);if(relics.map(x=>x.name).includes("Frozen Eye")){Q=drawPile.map(x=>x.name).join("\n");showPopup(Q);}else{o={};for(let i of d){if(Object.keys(o).includes(i)){o[i]++;}else{o[i]=1;}}t=[];for(let i of Object.keys(o).sort()){t.push([i,o[i]]);}T=t.map(x=>x[1]+"x "+x[0]).join("\n");showPopup(T);}'>View Draw <span style="text-decoration:underline">P</span>ile</button>
                     <button id="exhaustPile" onclick='d=exhaustPile.map(x=>x.name);o={};for(let i of d){if(Object.keys(o).includes(i)){o[i]++;}else{o[i]=1;}}t=[];for(let i of Object.keys(o).sort()){t.push([i,o[i]]);}T=t.map(x=>x[1]+"x "+x[0]).join("\n");showPopup(T);'>View E<span style="text-decoration:underline">x</span>haust Pile</button>
                     | <button id="turnEnder"><span style="text-decoration:underline">E</span>nd Turn</button><br/>
                 </td>
@@ -392,7 +393,7 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.2.4";
+            let currentVersion = "v4.3";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
@@ -629,7 +630,6 @@ if(multiChoice.includes(num)) {
             let buffDesc = {
                 ".": "You weren't supposed to see this. Just ignore it.",
                 "Block": "Until next turn, prevents [AMT] damage.",
-                "Shielding": "Prevents [AMT] damage.",
                 "Vulnerable": "Take 50% more damage for [AMT] turn[s].",
                 "Weak": "Deal 25% less damage for [AMT] turn[s].",
                 "Strength": "Attacks deal [AMT] more damage.",
@@ -934,6 +934,7 @@ if(multiChoice.includes(num)) {
                         }
                     }
                     if(this.type == "Power") {
+                        stats.powersThisTurn++;
                         ifRelic("Bird-Faced Urn", function(){hp = Math.min(maxHp, hp + 2)});
                         ifRelic("Mummified Hand", function(){
                             let eligible = hand.filter(x=>x.cost > 0);
@@ -961,8 +962,10 @@ if(multiChoice.includes(num)) {
                         ifRelic("Duality", function(){gainBuff("Dexterity", 1); gainBuff("Dexterity Down", 1)});
                         loseBuff("Vigor");
                     }
-                    if(this.name.toLowerCase().includes("strike")) {
+                    if(stats.attacksThisTurn && stats.skillsThisTurn && stats.powersThisTurn) {
+                        ifRelic("Orange Pellets", function(){for(let d of debuffs) {loseBuff(d)}});
                     }
+                    if(this.name.toLowerCase().includes("strike")) {/*why does this even exist*/}
                     if(this.type != "Attack") {
                         if(hasBuff("Hex")) {
                             for(let i=0; i<hasBuff("Hex"); i++) {discardPile.push(statusCards["Dazed"]());}
@@ -1072,8 +1075,8 @@ if(multiChoice.includes(num)) {
                     finalAmt -= this.hasBuff("Minus Strength");
                     if(this.hasBuff("Weak")) {finalAmt = Math.round(finalAmt * 0.75);}
                     let ub = finalAmt - hasBuff("Block");
-                    if(ub > 0 && ub <= 5) {ifRelic("Torii", function(){finalAmt = 1;})}
                     if(ub > 0) {ifRelic("Tungsten Rod", function(){finalAmt--;})}
+                    if(ub > 0 && ub <= 5 && actuallyDeal) {ifRelic("Torii", function(){finalAmt = 1;})}
                     if(hasBuff("Intangible")) {finalAmt = 1;}
                     if(hasBuff("Buffer") && ub > 0 && actuallyDeal) {finalAmt = 0; loseBuff("Buffer", 1);}
                     return finalAmt;
@@ -1218,6 +1221,7 @@ if(multiChoice.includes(num)) {
                 let finalAmt = calcYourDamage(enemy, amt, shiv, strike, true);
                 if(finalAmt == 0) return;
                 let dealt = Math.max(0, finalAmt - enemy.hasBuff("Block"));
+                if(enemy.hasBuff("Block") && dealt) {ifRelic("Hand Drill", function(){enemy.gainBuff("Vulnerable", 2);});}
                 enemy.hp -= dealt;
                 if(enemy.hasBuff("Shifting")) {enemy.gainBuff("Minus Strength", dealt); enemy.gainBuff("Strength Up", dealt);}
                 let red = dealt * 10 + 120;
@@ -1344,7 +1348,7 @@ if(multiChoice.includes(num)) {
                     buffs = [];
                     energy = 0; // no ice cream hax
                     turn = 0;
-                    stats = {...stats, timesLostHp: 0, attacksThisTurn: 999, skillsThisTurn: 999, rested: stats.rested, lastType: "None", pers: 0, windmill: 0, mantraGain: 0, cardsThisTurn: 999};
+                    stats = {...stats, timesLostHp: 0, attacksThisTurn: 999, skillsThisTurn: 999, powersThisTurn: 999, lastType: "None", pers: 0, windmill: 0, mantraGain: 0, cardsThisTurn: 999};
                     target = enemies[0];
                     for(let c of deck) {
                         if(c.name == "Sands of Time" || c.name == "Sands of Time+" || c.name == "Blood for Blood" || c.name == "Blood for Blood+") {
@@ -1396,9 +1400,6 @@ if(multiChoice.includes(num)) {
                     }
                     if(enemies[0].name == "Taskmaster") {
                         enemies.push(rSlaver()); enemies.push(bSlaver());
-                    }
-                    if(enemies[0].name == "Reptomancer") {
-                        enemies.push(reptoDagger()); enemies.push(reptoDagger());
                     }
                     eliteBattle = true;
                     bossBattle = false;
@@ -1467,6 +1468,7 @@ if(multiChoice.includes(num)) {
                         let offer = randCard();
                         let cardCost = Math.round(Math.random()*37 + 45); // cost: 45g to 81g
                         if(getId("ascensionLevel").value >= 16) {cardCost = Math.round(Math.random()*43 + 51);} // cost: 51g to 93g
+                        ifRelic("Membership Card", function(){cardCost = Math.round(cardCost / 2)});
                         offers.push({index: i, price: cardCost, offer: offer});
                         if(i==0) {cardCost = Math.round(cardCost * 0.45);}
                         if(i==5) {cardCost = Math.round(Math.random()*30 + 135); offer = randRareCard();} // 6th card is rare
@@ -1501,6 +1503,7 @@ updateStatLine();
                     for(let i=0; i<3; i++) {
                         let offer = choice(choice(relicPool), choice(relicPool), choice(rareRelicPool));
                         let relicCost = Math.round(Math.random()*119 + 143);
+                        ifRelic("Membership Card", function(){relicCost = Math.round(relicCost / 2)});
                         offers.push({index: i+100, price: relicCost, offer: offer});
                         let relicElem = document.createElement("div");
                         let nameElem = document.createElement("button");
@@ -2928,6 +2931,7 @@ getId("woogleButton").onclick = function() {showMap();}
                 let weaves = discardPile.filter(x=>x.name == "Weave");
                 hand = [...hand, ...weaves];
                 discardPile = discardPile.filter(x=>x.name != "Weave");
+                updateHtml();
             }
             function finishAddCard(cardNumber) {
                 if(cardNumber >= 0 && cardNumber < possibleCards.length) {
@@ -3005,8 +3009,29 @@ getId("woogleButton").onclick = function() {showMap();}
             let possibleCards = [];
             
             let ifRelic = function(rel, func, args=[]) {
+                let foundIt = false;
                 for(let r of relics) {
-                    if(r.name == rel) {func(...args);}
+                    if(r.name == rel) {foundIt = true; func(...args);}
+                }
+                if(foundIt) {
+                    let relicImg = document.createElement("img");
+                    relicImg.src = "StS/"+rel.replaceAll(" ","").replaceAll("’","")+".png";
+                    relicImg.style.width = "300px";
+                    relicImg.style.height = "300px";
+                    relicImg.style.position = "absolute";
+                    relicImg.style.left = "0px";
+                    relicImg.style.top = "0px";
+                    let elemId = Math.random().toString();
+                    relicImg.id = elemId;
+                    document.body.appendChild(relicImg);
+                    let red = 1;
+                    let i = 0;
+                    while(red > 0) {
+                        setTimeout(function(r){getId(elemId).style.opacity = r;}, i * 10, red);
+                        i++;
+                        red -= 0.012;
+                        if(red < 0) {setTimeout(function(){getId(elemId).remove();}, i * 10);}
+                    }
                 }
             }
             let relicPool = [
@@ -3018,7 +3043,7 @@ getId("woogleButton").onclick = function() {showMap();}
                 {name: "Art of War", desc: "If you play no Attacks in a turn, gain 1 more Energy next turn."},
                 {name: "Bag of Marbles", desc: "ALL enemies start combat with 1 Vulnerable."},
                 {name: "Bag of Preparation", desc: "At the start of each combat, draw 2 more cards."},
-                {name: "Ball Bearing", desc: "When you shuffle your deck, add a Flash of Steel into it."},
+                {name: "Ball Bearing", desc: "When you shuffle your deck, add a Flash of Steel into it.<br/><i>(Flash of Steel: Costs 0 energy. Deal 3 damage. Draw 1 card.)</i>"},
                 {name: "Blood Vial", desc: "At the start of each combat, heal 2 HP."},
                 {name: "Bronze Scales", desc: "When you take damage, deal 3 back."},
                 {name: "Centennial Puzzle", desc: "The first time you lose HP each combat, draw 3 cards."},
@@ -3062,6 +3087,7 @@ getId("woogleButton").onclick = function() {showMap();}
                 {name: "Mercury Hourglass", desc: "At the start of your turn, deal 3 damage to ALL enemies."},
                 {name: "Molten Egg", desc: "When you add an Attack to your deck, upgrade it."},
                 {name: "Mummified Hand", desc: "When you play a Power, a random card in your hand costs 0 that turn."},
+                {name: "Ninja Scroll", desc: "Start each combat with 3 Shivs in hand."},
                 {name: "Ornamental Fan", desc: "When you play 3 Attacks in a turn, gain 4 Block."},
                 {name: "Pantograph", desc: "Heal 25 HP at the start of Boss combats."},
                 {name: "Pear", desc: "On pickup, gain 10 max HP."},
@@ -3073,8 +3099,17 @@ getId("woogleButton").onclick = function() {showMap();}
                 {name: "Toxic Egg", desc: "When you add a Skill to your deck, upgrade it."},
                 {name: "White Beast Statue", desc: "Potions always drop after combat."},
                 {name: "Self-Forming Clay", desc: "When you lose HP in combat, gain 3 Block next turn."},
-                {name: "Ninja Scroll", desc: "Start each combat with 3 Shivs in hand."},
-                {name: "Chemical X", desc: "Cards that cost X repeat their effect 2 more times."}
+                // Shop
+                {name: "Cauldron", desc: "On pickup, gain 3 random potions. Can go above potion limit."},
+                {name: "Chemical X", desc: "Cards that cost X repeat their effect 2 more times."},
+                {name: "Clockwork Souvenir", desc: "Start each combat with 1 Artifact."},
+                {name: "Dolly’s Mirror", desc: "On pickup, duplicate a card in your deck."},
+                {name: "Frozen Eye", desc: "The cards in your draw pile are now shown in order."},
+                {name: "Hand Drill", desc: "Whenever you break enemy block, apply 2 Vulnerable."},
+                {name: "Lee’s Waffle", desc: "On pickup, raise max HP by 7 and heal ALL of your HP."},
+                {name: "Medical Kit", desc: "Whenever you would draw a Status, Exhaust it instead."},
+                {name: "Membership Card", desc: "50% discount on shop relics and cards."},
+                {name: "Orange Pellets", desc: "When you play an Attack, Skill, and Power in the same turn, remove your debuffs."}
             ];
             let rareRelicPool = [
                 {name: "Bird-Faced Urn", desc: "When you play a Power, heal 2 HP."},
@@ -3123,23 +3158,24 @@ getId("woogleButton").onclick = function() {showMap();}
             
             async function onRelicPickup(r) {
                 if(r.name == "Strawberry") {maxHp += 7; hp += 7;}
+                if(r.name == "Lee’s Waffle") {maxHp += 7; hp = maxHp;}
                 if(r.name == "Pear") {maxHp += 10; hp += 10;}
                 if(r.name == "Mango") {maxHp += 14; hp += 14;}
                 if(r.name == "Old Coin") {gold += 300;}
                 if(r.name == "Potion Belt") {maxPotions += 2;}
                 if(r.name == "Bottled Flame") {
                     let chosen = await choose(deck.filter(x=>x.type=="Attack"), "Choose a card to start in your hand.");
-                    chosen.flags.push("innate");
+                    deck.filter(x=>x.number==chosen.number)[0].flags.push("innate");
                     r.desc = "Start each combat with "+chosen.name+" in your hand.";
                 }
                 if(r.name == "Bottled Lightning") {
                     let chosen = await choose(deck.filter(x=>x.type=="Skill"), "Choose a card to start in your hand.");
-                    chosen.flags.push("innate");
+                    deck.filter(x=>x.number==chosen.number)[0].flags.push("innate");
                     r.desc = "Start each combat with "+chosen.name+" in your hand.";
                 }
                 if(r.name == "Bottled Tornado") {
                     let chosen = await choose(deck.filter(x=>x.type=="Power"), "Choose a card to start in your hand.");
-                    chosen.flags.push("innate");
+                    deck.filter(x=>x.number==chosen.number)[0].flags.push("innate");
                     r.desc = "Start each combat with "+chosen.name+" in your hand.";
                 }
                 if(r.name == "War Paint") {
@@ -3154,26 +3190,40 @@ getId("woogleButton").onclick = function() {showMap();}
                     skillz = deck.filter(x=>x.type=="Attack"&&!x.name.includes("+"));
                     if(skillz.length) {upgradeCard(choice(skillz));}
                 }
+                if(r.name == "Cauldron") {
+                    potions.push(choice(potionPool)); potions.push(choice(potionPool)); potions.push(choice(potionPool));
+                }
+                if(r.name == "Dolly’s Mirror") {
+                    let chosen = await choose(deck, "Choose a card to duplicate.");
+                    deck.push(chosen);
+                    for(let i of deck) {i.number = Math.random();} /* re-randomize the uuids */
+                }
             }
             
             let potionPool = [
+                {name: "Aggressive", desc: "You must be aggressive to drink this...", effect: 'gainBuff("Strength", 10); gainBuff("Divinity", 1); gainBuff("Hex", 3); gainBuff("Dexterity Down", 3); for(let e of enemies){e.gainBuff("Enrage", 3)}'},
+                {name: "Ancient", desc: "Gain 1 Artifact.", effect: 'gainBuff("Artifact", 1)'},
                 {name: "Block", desc: "Gain 20 Block.", effect: 'gainBuff("Block", 20)'},
                 {name: "Blood", desc: "Heal for 20% of your Max HP.", effect: 'hp = Math.min(maxHp, hp + Math.round(0.2 * maxHp))'},
+                {name: "Bronze", desc: "Gain 3 Thorns.", effect: 'gainBuff("Thorns", 3)'},
+                {name: "Cleansing", desc: "Remove all debuffs.", effect: 'for(let d of debuffs) {loseBuff(d)}'},
                 {name: "Cultist", desc: "Gain 1 Ritual.", effect: 'gainBuff("Ritual", 1)'},
                 {name: "Dexterity", desc: "Gain 2 Dexterity.", effect: 'gainBuff("Dexterity", 2)'},
                 {name: "Energy", desc: "Gain 2 energy.", effect: 'energy += 2'},
-                {name: "Freeze", desc: "Stun target for 1 turn.", effect: 'tgt.gainBuff("Stunned", 1)'},
-                {name: "Iron", desc: "Gain 5 Plated Armor.", effect: 'gainBuff("Plated Armor", 5)'},
                 {name: "Explosive", desc: "Deal 10 damage to ALL enemies.", effect: 'for(let e of enemies){dealDamage(e, 10);}'},
+                {name: "Freeze", desc: "Stun target for 1 turn.", effect: 'tgt.gainBuff("Stunned", 1)'},
                 {name: "Fear", desc: "Apply 3 Vulnerable to target.", effect: 'tgt.gainBuff("Vulnerable", 3)'},
                 {name: "Fire", desc: "Deal 20 damage to target.", effect: 'dealDamage(tgt, 20)'},
                 {name: "Flex", desc: "Gain 5 Strength. At end of turn, lose 5 Strength.", effect: 'gainBuff("Strength", 5); gainBuff("Strength Down", 5)'},
                 {name: "Fruit Juice", desc: "Gain 5 Max HP.", effect: 'maxHp += 5; hp += 5'},
+                {name: "Iron", desc: "Gain 5 Plated Armor.", effect: 'gainBuff("Plated Armor", 5)'},
                 {name: "Rage", desc: "Gain 10 Rage.", effect: 'gainBuff("Rage", 10)'},
-                {name: "Steel", desc: "Gain 3 Metallicize.", effect: 'gainBuff("Metallicize", 3)'},
-                {name: "Bronze", desc: "Gain 3 Thorns.", effect: 'gainBuff("Thorns", 3)'},
                 {name: "Regen", desc: "Gain 5 Regen.", effect: 'gainBuff("Regen", 5)'},
-                {name: "Speed", desc: "Gain 5 Dexterity. At end of turn, lose 5 Dexterity.", effect: 'gainBuff("Dexterity", 5); gainBuff("Dexterity Down", 5)'}
+                {name: "Speed", desc: "Gain 5 Dexterity. At end of turn, lose 5 Dexterity.", effect: 'gainBuff("Dexterity", 5); gainBuff("Dexterity Down", 5)'},
+                {name: "Stance", desc: "Change stances.", effect: 'if(hasBuff("Calm")) {gainBuff("Wrath", 1)} else {gainBuff("Calm", 1)}'},
+                {name: "Steel", desc: "Gain 3 Metallicize.", effect: 'gainBuff("Metallicize", 3)'},
+                {name: "Strength", desc: "Gain 2 Strength.", effect: 'gainBuff("Strength", 2)'},
+                {name: "Swift", desc: "Draw 5 cards.", effect: 'drawCard(5)'}
             ];
             
             let possibleEvents = {
@@ -3841,7 +3891,7 @@ getId("woogleButton").onclick = function() {showMap();}
             let hp = 70;
             let maxHp = 70;
             let buffs = [];
-            let stats = {timesLostHp: 0, attacksThisTurn: 999, skillsThisTurn: 999, rested: false, lastType: "None", pers: 0, windmill: 0, mantraGain: 0, cardsThisTurn: 999};
+            let stats = {timesLostHp: 0, attacksThisTurn: 999, skillsThisTurn: 999, powersThisTurn: 999, rested: false, lastType: "None", pers: 0, windmill: 0, mantraGain: 0, cardsThisTurn: 999};
             let gold = 0;
             let mapX = 2;
             let mapY = 0;
@@ -4883,7 +4933,7 @@ getId("woogleButton").onclick = function() {showMap();}
                     potionElem.appendChild(potionTooltip);
                     getId("potions").appendChild(potionElem);
                 }
-                for(let i=0; i<(maxPotions-potions.length); i++) {
+                for(let i=0; i<Math.max(0, maxPotions-potions.length); i++) {
                     let potionElem = document.createElement("button");
                     potionElem.classList.add("nonbutton");
                     potionElem.innerHTML = "Empty Slot";
@@ -4903,7 +4953,6 @@ getId("woogleButton").onclick = function() {showMap();}
                 getId("discardPile").innerHTML = "View D<span style='text-decoration:underline'>i</span>scard Pile | <span style='color:white'>"+discardPile.length+"</span>";
                 getId("exhaustPile").innerHTML = "View E<span style='text-decoration:underline'>x</span>haust Pile | <span style='color:white'>"+exhaustPile.length+"</span>";
                 //alert("Piles done");
-                let curses = deck.filter(x=>x.type=="Curse");
                 let x = document.getElementsByClassName("txt");
                 for (t of x) {
                     t.style.left = (mousex+10) + "px";
@@ -5305,7 +5354,7 @@ getId('relicReward').style.display = 'none';
                             toDraw.flags.push("nextcost "+toDraw.cost);
                             toDraw.cost = Math.floor(Math.random()*4);
                         }
-                        hand.push(toDraw);
+                        if(relics.map(x=>x.name).includes("Medical Kit")) {exhaustPile.push(toDraw);} else {hand.push(toDraw);}
                         if(toDraw.type == "Status") {
                             drawCard(hasBuff("Evolve"));
                             for(let e of enemies) {
@@ -5342,6 +5391,7 @@ getId('relicReward').style.display = 'none';
                     ifRelic("Philosopher’s Stone", function(){for(let e of enemies){e.gainBuff("Strength", 1);}});
                     ifRelic("Snecko Eye", function(){gainBuff("Confused", 1);});
                     ifRelic("Holy Water", function(){hand.push(new Card("Miracle+", 0, "Skill", "Retain. Gain 2 energy. Exhaust.", function(enemy){energy += 2;}, ["exhausted", "retain"]))});
+                    ifRelic("Clockwork Souvenir", function(){gainBuff("Artifact", 1);});
                 }
                 if(turn == 1) {ifRelic("Horn Cleat", function(){gainBuff("Block", 14)})}
                 if(turn == 2) {ifRelic("Captain’s Wheel", function(){gainBuff("Block", 18)})}
@@ -5562,7 +5612,7 @@ getId('relicReward').style.display = 'none';
                 maxHp = 70;
                 hp = 70;
                 buffs = [];
-                stats = {timesLostHp: 0, attacksThisTurn: 999, skillsThisTurn: 999, rested: false, lastType: "None", pers: 0, windmill: 0, mantraGain: 0, cardsThisTurn: 999};
+                stats = {timesLostHp: 0, attacksThisTurn: 999, skillsThisTurn: 999, powersThisTurn: 999, rested: false, lastType: "None", pers: 0, windmill: 0, mantraGain: 0, cardsThisTurn: 999};
                 gold = 0;
                 mapX = 2;
                 mapY = 0;
