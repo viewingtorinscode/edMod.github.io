@@ -301,6 +301,7 @@ Modifiers:
 * 18- Normal enemies have stronger abilities.
 * 19- Elites have stronger abilities.
 * 20- Bosses have stronger abilities.
+* 21- Double boss.
 
 Selected level: <input id="ascensionLevel" value="0" type="number" style="width: 70px">
             </pre>
@@ -395,7 +396,7 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.3.2b";
+            let currentVersion = "v4.4";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
@@ -910,6 +911,8 @@ if(multiChoice.includes(num)) {
                             ifRelic("Charon’s Ashes", function(){for(let e of enemies){dealDamage(e, 3);}});
                         } else if(this.name == "Tantrum") {
                             drawPile.push(this); drawPile = shuffle(drawPile);
+                        } else if(relics.map(x=>x.name).includes("Boomerang") && stats.cardsThisTurn == 3) {
+                            drawPile.unshift(this);
                         } else {
                             discardPile.push(this);
                         }
@@ -972,6 +975,10 @@ if(multiChoice.includes(num)) {
                         if(hasBuff("Hex")) {
                             for(let i=0; i<hasBuff("Hex"); i++) {discardPile.push(statusCards["Dazed"]());}
                         }
+                    }
+                    if(deck.map(x=>x.number).includes(this.number) && relics.map(x=>x.name).includes("Buckler")) {
+                        upgradeCard(deck.filter(x=>x.number==this.number)[0]);
+                        relics = relics.filter(x=>x.name!="Buckler");
                     }
                     let en = enemies[0];
                     if(en.name == "Time Eater") {
@@ -1100,7 +1107,7 @@ if(multiChoice.includes(num)) {
                     
                     if(dealt > 0) {
                         if(stats.timesLostHp == 0) {ifRelic("Centennial Puzzle", function(){drawCard(3)})}
-                        ifRelic("Runic Cube", function(){drawCard(1)});
+                        ifRelic("Runic Cube", function(){drawCard()});
                         stats.timesLostHp++;
                         ifRelic("Self-Forming Clay", function(){gainBuff("Next Turn Block", 3)});
                         for(let i of [...drawPile, ...hand, ...discardPile]) {
@@ -1278,7 +1285,7 @@ if(multiChoice.includes(num)) {
             function showMap() {
                 music.shop.pause(); music.rest.pause();
                 music.shop.currentTime = 0; music.rest.currentTime = 0;
-                if(mapY >= 15) {
+                if(mapY >= 15 && (getId("ascensionLevel").value < 21 || actNum != 3 || mapY >= 16)) {
                     mapY = 0;
                     hp = (getId("ascensionLevel").value >= 5 ? Math.round(hp+0.75*(maxHp-hp)) : maxHp);
                     mapGen();
@@ -1286,6 +1293,9 @@ if(multiChoice.includes(num)) {
                         actNum = 2;
                     } else if(actNum == 2) {
                         actNum = 3;
+                        if(getId("ascensionLevel").value >= 21) {
+                            map.push(["","","👺","",""]);
+                        }
                     } else if(actNum == 3) {
                         actNum = 0;
                         timerRunning = false; updateStatLine(); music.win.play(); announceMusic("A Return To Order"); alert("You win! Nice job"); return;
@@ -1368,7 +1378,7 @@ if(multiChoice.includes(num)) {
                         let shuffledDeck = shuffle(deck.slice(0));
                         for(let card of shuffledDeck) {
                             if(card.flags.includes("innate")) {
-                                hand.push(card);
+                                hand.push(card); ifRelic("Bookmark", function(){drawCard()});
                             } else {
                                 drawPile.push(card);
                             }
@@ -1413,7 +1423,8 @@ if(multiChoice.includes(num)) {
                     bossBattle = false;
                     readyBattle();
                 } else if(map[y][x].includes("👺")) {
-                    enemies = [runBosses[(actNum - 1)]]
+                    enemies = [runBosses[(actNum - 1)]];
+                    if(getId("ascensionLevel").value >= 21 && mapY >= 16) {enemies = choice(possibleBosses_act3);}
                     if(enemies[0].name == "Donu") {
                         let a_b = (what, amt) => function(me){ for(let e of enemies){e.gainBuff(what, amt);}}
                         let a_mb = (lst) => function(me){ for(let e of enemies){for(let i of lst){e.gainBuff(lst[0], lst[1]);}}}
@@ -1509,7 +1520,8 @@ updateStatLine();
                     }
                     getId("merchantScreen").innerHTML += "<br/>";
                     for(let i=0; i<3; i++) {
-                        let offer = choice(shopRelicPool);
+                        let offer = randRelic();
+                        if(i==2) {offer = choice(shopRelicPool);}
                         let relicCost = Math.round(Math.random()*119 + 143);
                         ifRelic("Membership Card", function(){relicCost = Math.round(relicCost / 2)});
                         offers.push({index: i+100, price: relicCost, offer: offer});
@@ -1526,6 +1538,7 @@ updateStatLine();
 gold -= ${relicCost};
 let r = ${JSON.stringify(offer)};
 relics.push(r);
+onRelicPickup(r);
 getId("relicElem_${i}").style.display = "none";
 relics = relics.filter(x=>x.name!="Maw Bank");
 updateStatLine();
@@ -1886,7 +1899,7 @@ getId("woogleButton").onclick = function() {showMap();}
                 for(let e of enemies){dealDamage(e, 4);dealDamage(e, 4);}
             });
             let daggerThrow = () => new Card("Dagger Throw", 1, "Attack", "Deal [DAM9] damage. Draw a card. Discard a card.", async function(enemy){
-                dealDamage(enemy, 9); drawCard(1);
+                dealDamage(enemy, 9); drawCard();
                 let chosen = await choose(hand.filter(x=>x.name!="Dagger Throw"), "Choose a card to discard.");
                 if(chosen) {
                     discardPile.push(chosen);
@@ -1913,7 +1926,7 @@ getId("woogleButton").onclick = function() {showMap();}
                 dealDamage(enemy, 6); enemy.gainBuff("Poison", 3);
             });
             let prepared = () => new Card("Prepared", 0, "Skill", "Draw a card. Discard a card.", async function(enemy){
-                drawCard(1);
+                drawCard();
                 let chosen = await choose(hand.filter(x=>x.name!="Prepared"), "Choose a card to discard.");
                 if(chosen) {
                     discardPile.push(chosen);
@@ -2079,7 +2092,7 @@ getId("woogleButton").onclick = function() {showMap();}
                 dealDamage(enemy, 8); if(stats.lastType == "Skill") {enemy.gainBuff("Vulnerable", 1);}
             });
             let cutThroughFate = () => new Card("Cut Through Fate", 1, "Attack", "Deal [DAM7] damage. Scry 2. Draw a card.", function(enemy){
-                dealDamage(enemy, 7); scry(2); drawCard(1);
+                dealDamage(enemy, 7); scry(2); drawCard();
             });
             let emptyBody = () => new Card("Empty Body", 1, "Skill", "Gain [BLK7] Block. Exit your stance.", function(enemy){
                 gainBuff("Block", 7); loseBuff("Wrath"); loseBuff("Calm"); loseBuff("Divinity");
@@ -2343,7 +2356,8 @@ getId("woogleButton").onclick = function() {showMap();}
                 }), "Shrug it Off": () => new Card("Shrug it Off+", 1, "Skill", "Gain [BLK11] Block. Draw a card.", function(enemy){
                     drawCard(); gainBuff("Block", 11);
                 }), "Sword Boomerang": () => new Card("Sword Boomerang+", 1, "Attack", "Deal [DAM3] damage to a random enemy 4 times.", function(enemy){
-                    dealDamage(choice(enemies), 3); dealDamage(choice(enemies), 3); dealDamage(choice(enemies), 3); dealDamage(choice(enemies), 3);
+                    let boom = () => dealDamage(choice(enemies), 3);
+                    boom(); boom(); boom(); boom();
                 }), "Thunderclap": () => new Card("Thunderclap+", 1, "Attack", "Deal [DAM7] damage and apply 1 Vulnerable to ALL enemies.", function(enemy){
                     for(let e of enemies){dealDamage(e, 7); e.gainBuff("Vulnerable", 1);}
                 }), "True Grit": () => new Card("True Grit+", 1, "Skill", "Gain [BLK7] Block. Exhaust a card in your hand.", async function(enemy){
@@ -2464,7 +2478,7 @@ getId("woogleButton").onclick = function() {showMap();}
                     gainBuff("Vulnerable", 1); gainBuff("Berserk", 1);
                 }, ["exhausted"]), "Bludgeon": () => new Card("Bludgeon+", 3, "Attack", "Deal [DAM42] damage.", function(enemy){
                     dealDamage(enemy, 42);
-                }), "Brutality": new Card("Brutality+", 0, "Power", "Innate. At the start of your turn, lose 1 HP and draw 1 more card.", function(enemy){
+                }), "Brutality": () => new Card("Brutality+", 0, "Power", "Innate. At the start of your turn, lose 1 HP and draw 1 more card.", function(enemy){
                     gainBuff("Brutality", 1);
                 }, ["exhausted", "innate"]), "Demon Form": () => new Card("Demon Form+", 3, "Power", "At the end of your turn, gain 3 Strength.", function(enemy){
                     gainBuff("Ritual", 3);
@@ -2510,7 +2524,7 @@ getId("woogleButton").onclick = function() {showMap();}
             }), "Dagger Spray": () => new Card("Dagger Spray+", 1, "Attack", "Deal [DAM6] damage to ALL enemies twice.", function(enemy){
                 for(let e of enemies){dealDamage(e, 6);dealDamage(e, 6);}
             }), "Dagger Throw": () => new Card("Dagger Throw+", 1, "Attack", "Deal [DAM12] damage. Draw a card. Discard a card.", async function(enemy){
-                dealDamage(enemy, 12); drawCard(1);
+                dealDamage(enemy, 12); drawCard();
                 let chosen = await choose(hand.filter(x=>x.name!="Dagger Throw+"), "Choose a card to discard.");
                 if(chosen) {
                     discardPile.push(chosen);
@@ -2648,7 +2662,7 @@ getId("woogleButton").onclick = function() {showMap();}
             }, ["retain", "exhausted"]), "Crush Joints": () => new Card("Crush Joints+", 1, "Attack", "Deal [DAM10] damage. If the last card played this combat was a Skill, apply 2 Vulnerable.", function(enemy){
                 dealDamage(enemy, 10); if(stats.lastType == "Skill") {enemy.gainBuff("Vulnerable", 2);}
             }), "Cut Through Fate": () => new Card("Cut Through Fate+", 1, "Attack", "Deal [DAM9] damage. Scry 3. Draw a card.", function(enemy){
-                dealDamage(enemy, 9); scry(3); drawCard(1);
+                dealDamage(enemy, 9); scry(3); drawCard();
             }), "Empty Body": () => new Card("Empty Body+", 1, "Skill", "Gain [BLK10] Block. Exit your stance.", function(enemy){
                 gainBuff("Block", 10); loseBuff("Wrath"); loseBuff("Calm"); loseBuff("Divinity");
             }), "Empty Fist": () => new Card("Empty Fist+", 1, "Attack", "Deal [DAM14] damage. Exit your stance.", function(enemy){
@@ -2831,7 +2845,8 @@ getId("woogleButton").onclick = function() {showMap();}
                 let card = choice([bodySlam, clash, cleave, clothesline, flex, headbutt, heavyBlade, ironWave, pommelStrike, shrugItOff, swordBoomerang, thunderclap, trueGrit, twinStrike, wildStrike, battleTrance, bloodForBlood, bloodletting, burningPact, carnage, combust, darkEmbrace, disarm, dropkick, dualWield, entrench, evolve, feelNoPain, fireBreathing, flameBarrier, ghostlyArmor, hemokinesis, infernalBlade, inflame, intimidate, metallicize, powerThrough, pummel, rage, rampage, secondWind, seeingRed, severSoul, spotWeakness, uppercut, whirlwind, acrobatics, backflip, bane, bladeDance, cloakAndDagger, daggerSpray, daggerThrow, deadlyPoison, deflect, dodgeAndRoll, flyingKnee, outmaneuver, poisonedStab, prepared, quickSlash, slice, suckerPunch, accuracy, allOutAttack, backstab, blur, bouncingFlask, caltrops, catalyst, concentrate, cripplingCloud, dash, distraction, expertise, finisher, footwork, heelHook, infiniteBlades, legSweep, noxiousFumes, predator, skewer, terror, bowlingBash, consecrate, crescendo, crushJoints, cutThroughFate, emptyBody, emptyFist, evaluate, flurryOfBlows, flyingSleeves, followUp, halt, justLucky, pressurePoints, predict, precision, prostrate, protect, sashWhip, thirdEye, tranquility, battleHymn, collect, conclude, deceiveReality, emptyMind, fasting, fearNoEvil, foresight, indignation, innerPeace, likeWater, mentalFortress, nirvana, perseverance, pray, reachHeaven, rushdown, sanctity, sandsOfTime, signatureMove, simmeringFury, study, swivel, talkToTheHand, tantrum, wallop, waveOfTheHand, weave, wheelKick, windmillStrike, worship, wreathOfFlame]);
                 let alum = 0; ifRelic("Aluminum Foil", function(){alum++});
                 if(Math.random() < (0.2 * alum + 0.3 * (actNum - 1)) && upg) {
-                    return upgradedCards[card().name]();
+                    let u = upgradedCards[card().name];
+                    try {return u();} catch(err) {alert("Weird, random card "+card().name+" has no upgrade!"); return card();}
                 } else {
                     return card();
                 }
@@ -2839,7 +2854,9 @@ getId("woogleButton").onclick = function() {showMap();}
             let randRareCard = function(upg=true) {
                 let card = choice([barricade, berserk, bludgeon, brutality, demonForm, doubleTap, corruption, exhume, feed, impervious, juggernaut, limitBreak, offering, reaper, thousandCuts, adrenaline, afterImage, burst, dieDieDie, doppelganger, envenom, grandFinale, stormOfSteel, toolsOfTheTrade, alpha, blasphemy, brilliance, conjureBlade, deusExMachina, devaForm, devotion, establishment, judgment, lessonLearned, ragnarok, scrawl, spiritShield, vault, wish]);
                 if(Math.random() < 0.3 * (actNum - 1) && upg) {
-                    return upgradedCards[card().name]();
+                    alert("Rare card: "+card().name);
+                    let u = upgradedCards[card().name];
+                    try {return u();} catch(err) {alert("Weird, random card "+card().name+" has no upgrade!"); return card();}
                 } else {
                     return card();
                 }
@@ -3076,9 +3093,13 @@ getId("woogleButton").onclick = function() {showMap();}
                 {name: "Whetstone", desc: "On pickup, upgrade 2 random Attacks."},
                 // Reliquary
                 {name: "Aluminum Foil", desc: "Card rewards are more likely to be rare and upgraded."},
-                {name: "Ball Bearing", desc: "When you shuffle your deck, add a Flash of Steel into it.<br/><i>(Flash of Steel: Costs 0 energy. Deal 3 damage. Draw 1 card.)</i>"}
+                {name: "Ball Bearing", desc: "When you shuffle your deck, add a Flash of Steel into it.<br/><i>(Flash of Steel: Costs 0 energy. Deal 3 damage. Draw 1 card.)</i>"},
+                {name: "Boomerang", desc: "Put the fourth card you play each turn on top of your draw pile."},
+                {name: "Buckler", desc: "The next card in your deck you play is permanently upgraded."},
+                {name: "Elizabethan Collar", desc: "On pickup, your Curses become Injuries. All Curses you obtain become Injuries. (assuming they’re not already equivalent)"}
             ];
             let uncommonRelicPool = [
+                // Vanilla
                 {name: "Blue Candle", desc: "Curses can now be played. They cost 0 and will make you lose 1 HP and Exhaust them."},
                 {name: "Bottled Flame", desc: "On pickup, choose an Attack. Start each combat with it in hand."},
                 {name: "Bottled Lightning", desc: "On pickup, choose an Skill. Start each combat with it in hand."},
@@ -3106,9 +3127,13 @@ getId("woogleButton").onclick = function() {showMap();}
                 {name: "Sundial", desc: "When you shuffle your deck, gain 1 energy."},
                 {name: "Teardrop Locket", desc: "Start each combat in Calm."},
                 {name: "Toxic Egg", desc: "When you add a Skill to your deck, upgrade it."},
-                {name: "White Beast Statue", desc: "Potions always drop after combat."}
+                {name: "White Beast Statue", desc: "Potions always drop after combat."},
+                // Reliquary
+                {name: "Blood Sugar", desc: "Whenever you enter a room, heal 7 HP then decrease it by 1. Rest to reset it to 7."},
+                {name: "Feather Duster", desc: "On pickup, remove any non-Strike, non-Defend, non-Curse cards."}
             ];
             let shopRelicPool = [
+                // Valilla
                 {name: "Brimstone", desc: "At the start of your turn, gain 2 Strength and ALL enemies gain 1 Strength."},
                 {name: "Cauldron", desc: "On pickup, gain 3 random potions. Can go above potion limit."},
                 {name: "Chemical X", desc: "Cards that cost X repeat their effect 2 more times."},
@@ -3124,9 +3149,13 @@ getId("woogleButton").onclick = function() {showMap();}
                 {name: "Sling of Courage", desc: "Start each Elite combat with 2 Strength."},
                 {name: "Strange Spoon", desc: "Non-Power cards that Exhaust when played have a 50% chance to be discarded instead."},
                 {name: "The Abacus", desc: "Whenever you shuffle your draw pile, gain 6 Block."},
-                {name: "Twisted Funnel", desc: "At the start of each combat, apply 4 Poison to ALL enemies."}
+                {name: "Twisted Funnel", desc: "At the start of each combat, apply 4 Poison to ALL enemies."},
+                // Reliquary
+                {name: "Bookmark", desc: "At the start of each combat, draw a card for each Innate card in your deck."},
+                {name: "Citrus Reamer", desc: "Whenever you have 10 cards in hand, gain 1 energy."}
             ];
             let rareRelicPool = [
+                // Vanilla
                 {name: "Bird-Faced Urn", desc: "When you play a Power, heal 2 HP."},
                 {name: "Calipers", desc: "At the start of your turn, lose 15 Block rather than all your Block."},
                 {name: "Captain’s Wheel", desc: "Start turn 3 with 18 Block."},
@@ -3145,7 +3174,9 @@ getId("woogleButton").onclick = function() {showMap();}
                 {name: "Torii", desc: "When you take 5 or less unblocked damage, reduce it to 1."},
                 {name: "Tungsten Rod", desc: "When you take unblocked damage, reduce it by 1."},
                 {name: "Turnip", desc: "You are immune to Frail."},
-                {name: "Unceasing Top", desc: "When your hand is empty during your turn, draw a card."}
+                {name: "Unceasing Top", desc: "When your hand is empty during your turn, draw a card."},
+                // Reliquary
+                {name: "Crutches", desc: "Whenever you draw a Status, enemies lose 2 Strength next turn."}
             ];
             let bossRelicPool = [
                 {name: "Busted Crown", desc: "+1 Max Energy. Card reward screens have only 1 card to choose from."},
@@ -3217,6 +3248,13 @@ getId("woogleButton").onclick = function() {showMap();}
                 if(r.name == "Blood Sugar") {
                     stats.bloodSugar = 7;
                     for(let i of relics) {if(i.name == "Blood Sugar") {i.desc = "Whenever you enter a room, heal 7 HP then decrease it by 1. Rest to reset it to 7.";}}
+                }
+                if(r.name == "Elizabethan Collar") {
+                    deck = deck.map(x=>(x.type=="Curse"&&x.name!="Injury")?new Card("Injury", 0, "Curse", "Unplayable.", function(){}, ["unplayable"]):x);
+                }
+                if(r.name == "Feather Duster") {
+                    let chosen = await choose(deck.filter(x=>!x.name.includes("Strike") && !x.name.includes("Defend") && x.type != "Curse"), "Choose cards to remove.", true);
+                    deck = deck.filter(x=>!chosen.includes(x));
                 }
             }
             
@@ -3412,7 +3450,9 @@ getId("woogleButton").onclick = function() {showMap();}
                         choices: [
                             ["Yes", "Gain 175 gold, but gain Doubt.<br/><i>(Doubt: Unplayable. When drawn, gain 1 Frail.)</i>", `
 gold += 175;
+if(relics.map(x=>x.name).includes("Elizabethan Collar")) {deck.push(new Card("Injury", 0, "Curse", "Unplayable.", function(){}, ["unplayable"]));} else {
 deck.push(new Card("Doubt", 0, "Curse", "Unplayable. When drawn, gain 1 Frail.", function(enemy){}, ["unplayable"]));
+}
 updateStatLine();
 getId("eventDesc").innerHTML = "“Yessssssssssssssssssss... This will all be worth it. ..ssSSs... ..ss.. ..sSSsSss...!”<br/>The serpent blasts a stream of gold upwards! It is amazing and terrifying simultaneously.";
 getId("eventChoices").innerHTML = "<button id=woogleButton>Leave</button>";
@@ -3476,7 +3516,9 @@ getId("woogleButton").onclick = function() {showMap();}
 let r = randRelic();
 relics.push(r);
 onRelicPickup(r);
+if(relics.map(x=>x.name).includes("Elizabethan Collar")) {deck.push(new Card("Injury", 0, "Curse", "Unplayable.", function(){}, ["unplayable"]));} else {
 deck.push(new Card("Regret", 0, "Curse", "Unplayable. At the end of your turn, lose 1 HP per card in your hand.", function(enemy){}, ["unplayable"]));
+}
 updateStatLine();
 getId("eventDesc").innerHTML = "You grab the box and find a relic inside! However, you really craved that donut... You are filled with regret.";
 getId("eventChoices").innerHTML = "<button id=woogleButton>Leave</button>";
@@ -3498,7 +3540,9 @@ getId("woogleButton").onclick = function() {showMap();}
                             }; fun();`],
                             ["Rummage", "Obtain a special relic, but gain Pain.<br/><i>(Pain: Unplayable. Whenever you play a card this turn, lose 1 HP.)</i>", `
 relics.push({name: "Warped Tongs", desc: "At the start of your turn, upgrade a random card in your hand this combat."});
+if(relics.map(x=>x.name).includes("Elizabethan Collar")) {deck.push(new Card("Injury", 0, "Curse", "Unplayable.", function(){}, ["unplayable"]));} else {
 deck.push(new Card("Pain", 0, "Curse", "Unplayable. Whenever you play a card this turn, lose 1 HP.", function(enemy){}, ["unplayable"]));
+}
 updateStatLine();
 getId("eventDesc").innerHTML = "You search the hut and eventually find some old tongs! But, you prick yourself on their sharp points...";
 getId("eventChoices").innerHTML = "<button id=woogleButton>Leave</button>";
@@ -3741,7 +3785,9 @@ getId("woogleButton").onclick = function() {showMap();}
 let r = randRelic();
 relics.push(r);
 onRelicPickup(r);
+if(relics.map(x=>x.name).includes("Elizabethan Collar")) {deck.push(new Card("Injury", 0, "Curse", "Unplayable.", function(){}, ["unplayable"]));} else {
 deck.push(new Card("Shame", 0, "Curse", "Unplayable. When drawn, gain 1 Weak.", function(enemy){}, ["unplayable"]));
+}
 getId("eventDesc").innerHTML = "You snatch the relic from him and run away. From behind, you hear, “Have you no shame? HAVE YOU NO SHAAAME!?” You have some shame.";
 getId("eventChoices").innerHTML = "<button id=woogleButton>Leave</button>";
 getId("woogleButton").onclick = function() {showMap();}
@@ -3831,7 +3877,9 @@ getId("woogleButton").onclick = function() {showMap();}
                             }; fun();`],
                             ["Press On", "Heal 18 HP, but gain Writhe.<br/><i>(Writhe: Unplayable. Innate.)</i>", `
 hp = Math.min(hp + 18, maxHp);
+if(relics.map(x=>x.name).includes("Elizabethan Collar")) {deck.push(new Card("Injury", 0, "Curse", "Unplayable.", function(){}, ["unplayable"]));} else {
 deck.push(new Card("Writhe", 0, "Curse", "Unplayable. Innate.", function(enemy){}, ["unplayable", "innate"]));
+}
 getId("eventDesc").innerHTML = "You take a moment to carefully observe the landscape around you. Slowly, the hint of a pattern emerges from the randomness. You struggle through the mental pain to map out a path forward.";
 getId("eventChoices").innerHTML = "<button id=woogleButton>Leave</button>";
 getId("woogleButton").onclick = function() {showMap();}
@@ -3918,7 +3966,7 @@ getId("woogleButton").onclick = function() {showMap();}
             let actNum = 1;
             let turn = 0;
             let crCost = 75;
-            let randomThing = () => choice(["❓","💀","💀","💀","💀","💲","😈","🏕️"]);
+            let randomThing = () => choice(["❓","💀","💀","💀","💀","💀","💀","💀","💲","😈","🏕️"]);
             let topThing = () => choice(["❓", "💀", choice(["💀","💀","💲","🏕️"])]);
             function maybeThing() {if(Math.random()<0.6){return randomThing();}else{return "";}}
             let map; //❓
@@ -5328,6 +5376,7 @@ getId('relicReward').style.display = 'none';
                         discardPile.push(new Card("Shiv", 0, "Attack", "Deal [SHIV] damage. Exhaust.", function(e){dealDamage(e,4,true);}, ["exhausted"]));
                     }
                 }
+                if(hand.length == 10) {ifRelic("Citrus Reamer", function(){energy++;gainBuff("Temp Energy", 1);});}
             }
             function addShivPluses(num=1) {
                 for(let i=0; i<num; i++) {
@@ -5338,6 +5387,7 @@ getId('relicReward').style.display = 'none';
 
                     }
                 }
+                if(hand.length == 10) {ifRelic("Citrus Reamer", function(){energy++;gainBuff("Temp Energy", 1);});}
             }
             function addSmites(num=1) {
                 for(let i=0; i<num; i++) {
@@ -5347,6 +5397,7 @@ getId('relicReward').style.display = 'none';
                         discardPile.push(new Card("Smite", 1, "Attack", "Deal [DAM12] damage. Exhaust.", function(e){dealDamage(e,12);}, ["exhausted", "retain"]));
                     }
                 }
+                if(hand.length == 10) {ifRelic("Citrus Reamer", function(){energy++;gainBuff("Temp Energy", 1);});}
             }
             function addInsights(num=1) {
                 for(let i=0; i<num; i++) {
@@ -5382,11 +5433,13 @@ getId('relicReward').style.display = 'none';
                             for(let e of enemies) {
                                 dealDamage(e, hasBuff("Fire Breathing"));
                             }
+                            ifRelic("Crutches", function(){for(let e of enemies){e.gainBuff("Minus Strength", 2);e.gainBuff("Strength Up", 2);}});
                         }
                         if(toDraw.name == "Doubt") gainBuff("Frail", 1);
                         if(toDraw.name == "Shame") gainBuff("Weak", 1);
                     }
                 }
+                if(hand.length == 10) {ifRelic("Citrus Reamer", function(){energy++;gainBuff("Temp Energy", 1);});}
             }
             
             async function startTurn() {
@@ -5433,7 +5486,7 @@ getId('relicReward').style.display = 'none';
                     loseBuff("Next Turn Cards");
                 }
                 ifRelic("Snecko Eye", function(){drawCard(2);});
-                ifRelic("Serpent Ring", function(){drawCard(1);});
+                ifRelic("Serpent Ring", function(){drawCard();});
                 ifRelic("Warped Tongs", function(){
                     let c = choice(hand.filter( x=>(!x.name.includes("+") && x.type!="Status" && x.type!="Curse" && !["Shiv", "Smite", "Insight", "Expunger", "Safety", "Through Violence", "Madness"].includes(x.name)) ));
                     if(!c) return;
@@ -5606,12 +5659,12 @@ getId('relicReward').style.display = 'none';
             // This has to be at the bottom because it modifies everything else
             getId("ascensionLevel").addEventListener("change", function() {
                 let lv = getId("ascensionLevel").value;
-                if(lv >= 1) {randomThing = () => choice(["😈","❓","💀","💀","💲","😈","🏕️"]);}
+                if(lv >= 1) {randomThing = () => choice(["❓","💀","💀","💀","💀","💀","💀","😈","💲","😈","🏕️"]);}
                 if(lv >= 6) {hp = 0.9 * maxHp;}
                 if(lv >= 10) {deck.push(new Card("Ascenders’ Bane", 0, "Curse", "Unplayable. Ethereal.", function(enemy){}, ["unplayable", "ethereal"]))}
                 if(lv >= 11) {maxPotions--;}
                 if(lv >= 14) {maxHp -= 5; hp -= 5;}
-                if(lv >= 15) {randomThing = () => choice(["😈","😈","❓","❓","💀","💀","💀","💲","😈","🏕️"]);}
+                if(lv >= 15) {randomThing = () => choice(["❓","💀","💀","💀","💀","💀","💀","😈","❓","💀","💀","💀","💀","💀","💀","😈","💲","😈","🏕️"]);}
                 if(lv >= 17) {
                     deck.push(new Card("Strike", 1, "Attack", "Deal [DAM6] damage.", function(enemy){dealDamage(enemy,6);}))
                 }
