@@ -353,7 +353,7 @@ Credits (in order of importance):
             <h2>Rest Site</h2>
             <span>You can rest or improve your deck here.</span>
             <br/>
-            <button onclick="if(!relics.map(x=>x.name).includes('Coffee Dripper')){ifRelic('Regal Pillow', function(){hp += 15}); hp = Math.min(maxHp, Math.round(hp + 0.3*maxHp)); stats.rested = true; ifRelic('Dream Catcher', function(){addCard()}); showMap();}" class="tt restSite" id="rester"><span style='text-decoration:underline'>R</span>est<span class="txt" id="rest_txt">Heal 30% of your max HP. (currently 21 HP)</span></button>
+            <button onclick="if(!relics.map(x=>x.name).includes('Coffee Dripper')){ifRelic('Regal Pillow', function(){hp += 15}); hp = Math.min(maxHp, Math.round(hp + 0.3*maxHp)); stats.rested = true; ifRelic('Dream Catcher', function(){addCard()}); if(relics.map(x=>x.name).includes('Blood Sugar')){stats.bloodSugar = 7; for(let i of relics) {if(i.name == 'Blood Sugar') {i.desc = 'Whenever you enter a room, heal 7 HP then decrease it by 1. Rest to reset it to 7.';}}}; showMap();}" class="tt restSite" id="rester"><span style='text-decoration:underline'>R</span>est<span class="txt" id="rest_txt">Heal 30% of your max HP. (currently 21 HP)</span></button>
             <button onclick="if(!relics.map(x=>x.name).includes('Fusion Hammer')){upgradeDialog();}" class="tt restSite Attack" id="smither"><span style='text-decoration:underline'>S</span>mith<span class="txt">Upgrade a card in your deck.</span></button>
             <button onclick="showMap();" class="tt restSite Curse" id="skipper">Skip<span class="txt">Don't do anything.</span></button>
             <br/><br/>
@@ -395,7 +395,7 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.3.2";
+            let currentVersion = "v4.3.2b";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
@@ -1352,6 +1352,11 @@ if(multiChoice.includes(num)) {
                     energy = 0; // no ice cream hax
                     turn = 0;
                     stats = {...stats, timesLostHp: 0, attacksThisTurn: 999, skillsThisTurn: 999, powersThisTurn: 999, lastType: "None", pers: 0, windmill: 0, mantraGain: 0, cardsThisTurn: 999};
+                    if(stats.bloodSugar) {
+                        hp = Math.min(maxHp, hp + stats.bloodSugar);
+                        stats.bloodSugar -= 1;
+                        for(let i of relics) {if(i.name == "Blood Sugar") {i.desc = "Whenever you enter a room, heal "+stats.bloodSugar+" HP then decrease it by 1. Rest to reset it to 7.";}}
+                    }
                     target = enemies[0];
                     for(let c of deck) {
                         if(c.name == "Sands of Time" || c.name == "Sands of Time+" || c.name == "Blood for Blood" || c.name == "Blood for Blood+") {
@@ -3209,6 +3214,10 @@ getId("woogleButton").onclick = function() {showMap();}
                     deck.push(chosen);
                     for(let i of deck) {i.number = Math.random();} /* re-randomize the uuids */
                 }
+                if(r.name == "Blood Sugar") {
+                    stats.bloodSugar = 7;
+                    for(let i of relics) {if(i.name == "Blood Sugar") {i.desc = "Whenever you enter a room, heal 7 HP then decrease it by 1. Rest to reset it to 7.";}}
+                }
             }
             
             let potionPool = [
@@ -3891,9 +3900,9 @@ getId("woogleButton").onclick = function() {showMap();}
             
             // Starting deck, relics, etc...
             let deck = [bash(), strike(), strike(), strike(), neutralize(), defend(), defend(), defend(), eruption(), vigilance()];
-            let relics = [{name: "Snake Ring", desc: "At the start of each combat, draw 2 more cards."},{name: "Sundial", desc: "At the start of each combat, draw 2 more cards."}];
+            let relics = [{name: "Snake Ring", desc: "At the start of each combat, draw 2 more cards."}];
             let potions = [];
-            let drawPile = shuffle(deck.slice(0)); // no shallow copy //
+            let drawPile = shuffle(deck.slice(0)); // no shallow copy
             let discardPile = [];
             let exhaustPile = [];
             let hand = [];
@@ -3902,7 +3911,7 @@ getId("woogleButton").onclick = function() {showMap();}
             let hp = 70;
             let maxHp = 70;
             let buffs = [];
-            let stats = {timesLostHp: 0, attacksThisTurn: 999, skillsThisTurn: 999, powersThisTurn: 999, rested: false, lastType: "None", pers: 0, windmill: 0, mantraGain: 0, cardsThisTurn: 999};
+            let stats = {timesLostHp: 0, attacksThisTurn: 999, skillsThisTurn: 999, powersThisTurn: 999, rested: false, lastType: "None", pers: 0, windmill: 0, mantraGain: 0, cardsThisTurn: 999, bloodSugar: 0};
             let gold = 0;
             let mapX = 2;
             let mapY = 0;
@@ -5620,7 +5629,7 @@ getId('relicReward').style.display = 'none';
                 deck = [bash(), strike(), strike(), strike(), neutralize(), defend(), defend(), defend(), eruption(), vigilance()];
                 relics = [{name: "Snake Ring", desc: "At the start of each combat, draw 2 more cards."}];
                 potions = [];
-                drawPile = shuffle(deck.slice(0)); // no shallow copy //
+                drawPile = shuffle(deck.slice(0)); // no shallow copy
                 discardPile = [];
                 exhaustPile = [];
                 hand = [];
@@ -5629,7 +5638,7 @@ getId('relicReward').style.display = 'none';
                 maxHp = 70;
                 hp = 70;
                 buffs = [];
-                stats = {timesLostHp: 0, attacksThisTurn: 999, skillsThisTurn: 999, powersThisTurn: 999, rested: false, lastType: "None", pers: 0, windmill: 0, mantraGain: 0, cardsThisTurn: 999};
+                stats = {timesLostHp: 0, attacksThisTurn: 999, skillsThisTurn: 999, powersThisTurn: 999, rested: false, lastType: "None", pers: 0, windmill: 0, mantraGain: 0, cardsThisTurn: 999, bloodSugar: 0};
                 gold = 0;
                 mapX = 2;
                 mapY = 0;
