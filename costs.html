@@ -354,7 +354,7 @@ Credits (in order of importance):
             <h2>Rest Site</h2>
             <span>You can rest or improve your deck here.</span>
             <br/>
-            <button onclick="if(!relics.map(x=>x.name).includes('Coffee Dripper')){ifRelic('Regal Pillow', function(){hp += 15}); hp = Math.min(maxHp, Math.round(hp + 0.3*maxHp)); stats.rested = true; ifRelic('Dream Catcher', function(){addCard()}); if(relics.map(x=>x.name).includes('Blood Sugar')){stats.bloodSugar = 7; for(let i of relics) {if(i.name == 'Blood Sugar') {i.desc = 'Whenever you enter a room, heal 7 HP then decrease it by 1. Rest to reset it to 7.';}}}; showMap();}" class="tt restSite" id="rester"><span style='text-decoration:underline'>R</span>est<span class="txt" id="rest_txt">Heal 30% of your max HP. (currently 21 HP)</span></button>
+            <button onclick="if(!relics.map(x=>x.name).includes('Coffee Dripper')){ifRelic('Regal Pillow', function(){hp += 15}); hp = Math.min(maxHp, Math.round(hp + 0.3*maxHp)); stats.rested = true; ifRelic('Dream Catcher', function(){addCard()}); if(relics.map(x=>x.name).includes('Blood Sugar')){stats.bloodSugar = 7; for(let i of relics) {if(i.name == 'Blood Sugar') {i.desc = 'Whenever you enter a room, heal 7 HP then decrease it by 1. Rest to reset it to 7.';}}}; getId('upgradeDialog').style.display='none'; showMap();}" class="tt restSite" id="rester"><span style='text-decoration:underline'>R</span>est<span class="txt" id="rest_txt">Heal 30% of your max HP. (currently 21 HP)</span></button>
             <button onclick="if(!relics.map(x=>x.name).includes('Fusion Hammer')){upgradeDialog();}" class="tt restSite Attack" id="smither"><span style='text-decoration:underline'>S</span>mith<span class="txt">Upgrade a card in your deck.</span></button>
             <button onclick="showMap();" class="tt restSite Curse" id="skipper">Skip<span class="txt">Don't do anything.</span></button>
             <br/><br/>
@@ -396,7 +396,7 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.4.2";
+            let currentVersion = "v4.4.3";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
@@ -741,7 +741,11 @@ if(multiChoice.includes(num)) {
                 "smite": "Costs 1 energy, has “Retain. Deal [SMITE] damage. Exhaust.”",
                 "insight": "Costs 0 energy, has “Draw 2 cards. Exhaust.”",
                 "safety": "Costs 1 energy, has “Retain. Gain [BLK12] Block. Exhaust.”",
-                "through violence": "Costs 0 energy, has “Retain. Deal [DAM20] damage. Exhaust.”"
+                "through violence": "Costs 0 energy, has “Retain. Deal [DAM20] damage. Exhaust.”",
+                "wound": "Unplayable card.",
+                "slimed": "Does nothing. Pay 1 energy to Exhaust.",
+                "burn": "Unplayable card. Makes you lose 1 HP.",
+                "dazed": "Unplayable Ethereal card."
             };
             function addCircle(char) {
                 let circles = {"X": "ⓧ", "0": "⓪", "1": "①", "2": "②", "3": "③", "4": "④", "5": "⑤"};
@@ -1865,6 +1869,19 @@ getId("woogleButton").onclick = function() {showMap();}
             let feed = () => new Card("Feed", 1, "Attack", "Deal [DAM10] damage. If the enemy dies from it, gain 3 Max HP. Exhaust.", function(enemy){
                 if(calcYourDamage(enemy, 10) >= enemy.hp) {maxHp += 3; hp += 3;} dealDamage(enemy, 10);
             }, ["exhausted"]);
+            let fiendFire = () => new Card("Fiend Fire", 2, "Attack", "Exhaust all other cards in your hand. Deal [DAM7] damage for each card Exhausted. Exhaust.", function(enemy){
+                for(let card of hand) {
+                    if(card.name != "Fiend Fire") {
+                        exhaustPile.push(card);
+                        hand.splice(hand.indexOf(card), 1);
+                        dealDamage(enemy, 7);
+                    }
+                }
+            }, ["exhausted"]);
+            let immolate = () => new Card("Immolate", 2, "Attack", "Deal [DAM21] damage to ALL enemies. Add a Burn to your discard pile.", function(enemy){
+                for(let i of enemies) {dealDamage(i, 21);}
+                discardPile.push(statusCards["Burn"]());
+            });
             let impervious = () => new Card("Impervious", 2, "Skill", "Gain [BLK30] Block. Exhaust.", function(enemy){
                 gainBuff("Block", 30);
             }, ["exhausted"]);
@@ -1978,6 +1995,14 @@ getId("woogleButton").onclick = function() {showMap();}
             let bouncingFlask = () => new Card("Bouncing Flask", 2, "Skill", "Apply 9 Poison to a random enemy.", function(enemy){
                 choice(enemies).gainBuff("Poison", 9);
             });
+            let calculatedGamble = () => new Card("Calculated Gamble", 0, "Skill", "Discard all other cards in hand, then draw that many. Exhaust.", function(enemy) {
+                let handSize = hand.length - 1;
+                for(let i of hand.filter(x=>x.name!="Calculated Gamble")) {
+                    discardPile.push(i);
+                    hand.splice(hand.indexOf(i), 1);
+                }
+                drawCard(handSize);
+            }, ["exhausted"]);
             let caltrops = () => new Card("Caltrops", 1, "Skill", "Gain 3 Thorns. Exhaust.", function(enemy){
                 gainBuff("Thorns", 3);
             }, ["exhausted"]);
@@ -2172,7 +2197,7 @@ getId("woogleButton").onclick = function() {showMap();}
                 for(let e of enemies){dealDamage(e, 11);} discardPile = [...discardPile, ...hand]; hand = [];
             });
             let deceiveReality = () => new Card("Deceive Reality", 1, "Skill", "Gain [BLK4] Block. Add a Safety to your hand.", function(enemy){
-                gainBuff("Block", 4); hand.push(new Card("Safety", 1, "Skill", "Gain [BLK12] Block. Retain. Exhaust.", function(enemy){gainBuff("Block", 12);}, ["retain", "exhaust"]));
+                gainBuff("Block", 4); hand.push(new Card("Safety", 1, "Skill", "Gain [BLK12] Block. Retain. Exhaust.", function(enemy){gainBuff("Block", 12);}, ["retain", "exhausted"]));
             });
             let emptyMind = () => new Card("Empty Mind", 1, "Skill", "Draw 2 cards. Exit your stance.", function(enemy){
                 drawCard(2); loseBuff("Wrath"); loseBuff("Calm"); loseBuff("Divinity");
@@ -2508,7 +2533,10 @@ getId("woogleButton").onclick = function() {showMap();}
                     if(calcYourDamage(enemy, 12) >= enemy.hp) {maxHp += 4; hp += 4;} dealDamage(enemy, 12);
                 }, ["exhausted"]), "Impervious": () => new Card("Impervious+", 2, "Skill", "Gain [BLK40] Block. Exhaust.", function(enemy){
                     gainBuff("Block", 40);
-                }, ["exhausted"]), "Juggernaut": () => new Card("Juggernaut+", 2, "Power", "Whenever you gain Block, deal [DAM7] damage to a random enemy.", function(enemy){
+                }, ["exhausted"]), "Immolate": () => new Card("Immolate+", 2, "Attack", "Deal [DAM28] damage to ALL enemies. Add a Burn to your discard pile.", function(enemy){
+                for(let i of enemies) {dealDamage(i, 28);}
+                discardPile.push(statusCards["Burn"]());
+                }), "Juggernaut": () => new Card("Juggernaut+", 2, "Power", "Whenever you gain Block, deal [DAM7] damage to a random enemy.", function(enemy){
                     gainBuff("Juggernaut", 7);
                 }, ["exhausted"]), "Limit Break": () => new Card("Limit Break+", 1, "Skill", "Double your Strength.", function(enemy){
                     if(hasBuff("Strength")) {gainBuff("Strength", hasBuff("Strength"));}
@@ -2518,6 +2546,14 @@ getId("woogleButton").onclick = function() {showMap();}
                     hp = Math.min(maxHp, hp + calcYourDamage(enemy, 10)); dealDamage(enemy, 10);
                 }, ["exhausted"]), "Corruption": () => new Card("Corruption+", 2, "Power", "Skills cost 0. Whenever you play a Skill, exhaust it.", function(enemy) {
                 gainBuff("Corruption", 1);
+            }, ["exhausted"]), "Fiend Fire": () => new Card("Fiend Fire+", 2, "Attack", "Exhaust all other cards in your hand. Deal [DAM10] damage for each card Exhausted. Exhaust.", function(enemy){
+                for(let card of hand) {
+                    if(card.name != "Fiend Fire+") {
+                        exhaustPile.push(card);
+                        hand.splice(hand.indexOf(card), 1);
+                        dealDamage(enemy, 10);
+                    }
+                }
             }, ["exhausted"]), "Acrobatics": () => new Card("Acrobatics+", 1, "Skill", "Draw 4 cards. Discard 1 card.", async function(enemy){
                 drawCard(4);
                 let chosen = await choose(hand.filter(x=>x.name!="Acrobatics+"), "Choose a card to discard.");
@@ -2589,6 +2625,13 @@ getId("woogleButton").onclick = function() {showMap();}
                 gainBuff("Blur", 1); gainBuff("Block", 8);
             }), "Bouncing Flask": () => new Card("Bouncing Flask+", 2, "Skill", "Apply 12 Poison to a random enemy.", function(enemy){
                 choice(enemies).gainBuff("Poison", 12);
+            }), "Calculated Gamble": () => new Card("Calculated Gamble+", 0, "Skill", "Discard all other cards in hand, then draw that many.", function(enemy) {
+                let handSize = hand.length - 1;
+                for(let i of hand.filter(x=>x.name!="Calculated Gamble+")) {
+                    discardPile.push(i);
+                    hand.splice(hand.indexOf(i), 1);
+                }
+                drawCard(handSize);
             }), "Caltrops": () => new Card("Caltrops+", 1, "Skill", "Gain 5 Thorns. Exhaust.", function(enemy){
                 gainBuff("Thorns", 5);
             }, ["exhausted"]), "Catalyst": () => new Card("Catalyst+", 1, "Skill", "Triple the enemy's Poison. Exhaust.", function(enemy){
@@ -2718,7 +2761,7 @@ getId("woogleButton").onclick = function() {showMap();}
             }), "Conclude": () => new Card("Conclude+", 1, "Attack", "Deal [DAM15] damage to ALL enemies. Discard your hand.", function(enemy){
                 for(let e of enemies){dealDamage(e, 15);} discardPile = [...discardPile, ...hand]; hand = [];
             }), "Deceive Reality": () => new Card("Deceive Reality+", 1, "Skill", "Gain [BLK7] Block. Add a Safety to your hand.", function(enemy){
-                gainBuff("Block", 7); hand.push(new Card("Safety", 1, "Skill", "Gain [BLK12] Block. Retain. Exhaust.", function(enemy){gainBuff("Block", 12);}, ["retain", "exhaust"]));
+                gainBuff("Block", 7); hand.push(new Card("Safety", 1, "Skill", "Gain [BLK12] Block. Retain. Exhaust.", function(enemy){gainBuff("Block", 12);}, ["retain", "exhausted"]));
             }), "Empty Mind": () => new Card("Empty Mind+", 1, "Skill", "Draw 3 cards. Exit your stance.", function(enemy){
                 drawCard(3); loseBuff("Wrath"); loseBuff("Calm"); loseBuff("Divinity");
             }), "Fasting": () => new Card("Fasting+", 2, "Power", "Gain 5 Strength and 5 Dexterity, but gain 1 less energy each turn.", function(enemy){
@@ -2855,7 +2898,7 @@ getId("woogleButton").onclick = function() {showMap();}
             }
             
             let randCard = function(upg=true) {
-                let card = choice([bodySlam, clash, cleave, clothesline, flex, headbutt, heavyBlade, ironWave, pommelStrike, shrugItOff, swordBoomerang, thunderclap, trueGrit, twinStrike, wildStrike, battleTrance, bloodForBlood, bloodletting, burningPact, carnage, combust, darkEmbrace, disarm, dropkick, dualWield, entrench, evolve, feelNoPain, fireBreathing, flameBarrier, ghostlyArmor, hemokinesis, infernalBlade, inflame, intimidate, metallicize, powerThrough, pummel, rage, rampage, secondWind, seeingRed, severSoul, spotWeakness, uppercut, whirlwind, acrobatics, backflip, bane, bladeDance, cloakAndDagger, daggerSpray, daggerThrow, deadlyPoison, deflect, dodgeAndRoll, flyingKnee, outmaneuver, poisonedStab, prepared, quickSlash, slice, suckerPunch, accuracy, allOutAttack, backstab, blur, bouncingFlask, caltrops, catalyst, concentrate, cripplingCloud, dash, distraction, expertise, finisher, footwork, heelHook, infiniteBlades, legSweep, noxiousFumes, predator, skewer, terror, bowlingBash, consecrate, crescendo, crushJoints, cutThroughFate, emptyBody, emptyFist, evaluate, flurryOfBlows, flyingSleeves, followUp, halt, justLucky, pressurePoints, predict, precision, prostrate, protect, sashWhip, thirdEye, tranquility, battleHymn, collect, conclude, deceiveReality, emptyMind, fasting, fearNoEvil, foresight, indignation, innerPeace, likeWater, mentalFortress, nirvana, perseverance, pray, reachHeaven, rushdown, sanctity, sandsOfTime, signatureMove, simmeringFury, study, swivel, talkToTheHand, tantrum, wallop, waveOfTheHand, weave, wheelKick, windmillStrike, worship, wreathOfFlame]);
+                let card = choice([bodySlam, clash, cleave, clothesline, flex, headbutt, heavyBlade, ironWave, pommelStrike, shrugItOff, swordBoomerang, thunderclap, trueGrit, twinStrike, wildStrike, battleTrance, bloodForBlood, bloodletting, burningPact, carnage, combust, darkEmbrace, disarm, dropkick, dualWield, entrench, evolve, feelNoPain, fireBreathing, flameBarrier, ghostlyArmor, hemokinesis, infernalBlade, inflame, intimidate, metallicize, powerThrough, pummel, rage, rampage, secondWind, seeingRed, severSoul, spotWeakness, uppercut, whirlwind, acrobatics, backflip, bane, bladeDance, cloakAndDagger, daggerSpray, daggerThrow, deadlyPoison, deflect, dodgeAndRoll, flyingKnee, outmaneuver, poisonedStab, prepared, quickSlash, slice, suckerPunch, accuracy, allOutAttack, backstab, blur, bouncingFlask, calculatedGamble, caltrops, catalyst, concentrate, cripplingCloud, dash, distraction, expertise, finisher, footwork, heelHook, infiniteBlades, legSweep, noxiousFumes, predator, skewer, terror, bowlingBash, consecrate, crescendo, crushJoints, cutThroughFate, emptyBody, emptyFist, evaluate, flurryOfBlows, flyingSleeves, followUp, halt, justLucky, pressurePoints, predict, precision, prostrate, protect, sashWhip, thirdEye, tranquility, battleHymn, collect, conclude, deceiveReality, emptyMind, fasting, fearNoEvil, foresight, indignation, innerPeace, likeWater, mentalFortress, nirvana, perseverance, pray, reachHeaven, rushdown, sanctity, sandsOfTime, signatureMove, simmeringFury, study, swivel, talkToTheHand, tantrum, wallop, waveOfTheHand, weave, wheelKick, windmillStrike, worship, wreathOfFlame]);
                 let alum = 0; ifRelic("Aluminum Foil", function(){alum++});
                 if(Math.random() < (0.2 * alum + 0.3 * (actNum - 1)) && upg) {
                     let u = upgradedCards[card().name];
@@ -2865,7 +2908,7 @@ getId("woogleButton").onclick = function() {showMap();}
                 }
             };
             let randRareCard = function(upg=true) {
-                let card = choice([barricade, berserk, bludgeon, brutality, demonForm, doubleTap, corruption, exhume, feed, impervious, juggernaut, limitBreak, offering, reaper, thousandCuts, adrenaline, afterImage, burst, dieDieDie, doppelganger, envenom, grandFinale, stormOfSteel, toolsOfTheTrade, alpha, blasphemy, brilliance, conjureBlade, deusExMachina, devaForm, devotion, establishment, judgment, lessonLearned, ragnarok, scrawl, spiritShield, vault, wish]);
+                let card = choice([barricade, berserk, bludgeon, brutality, demonForm, doubleTap, corruption, exhume, feed, fiendFire, immolate, impervious, juggernaut, limitBreak, offering, reaper, thousandCuts, adrenaline, afterImage, burst, dieDieDie, doppelganger, envenom, grandFinale, stormOfSteel, toolsOfTheTrade, alpha, blasphemy, brilliance, conjureBlade, deusExMachina, devaForm, devotion, establishment, judgment, lessonLearned, ragnarok, scrawl, spiritShield, vault, wish]);
                 if(Math.random() < 0.3 * (actNum - 1) && upg) {
                     let u = upgradedCards[card().name];
                     try {return u();} catch(err) {alert("Weird, random card "+card().name+" has no upgrade!"); return card();}
@@ -2880,11 +2923,11 @@ getId("woogleButton").onclick = function() {showMap();}
                 deck = [];
                 if(getId("useIronclad").checked) {
                     normals = [...normals, bodySlam, clash, cleave, clothesline, flex, headbutt, heavyBlade, ironWave, pommelStrike, shrugItOff, swordBoomerang, thunderclap, trueGrit, twinStrike, wildStrike, battleTrance, bloodForBlood, bloodletting, burningPact, carnage, combust, darkEmbrace, disarm, dropkick, dualWield, entrench, evolve, feelNoPain, fireBreathing, flameBarrier, ghostlyArmor, hemokinesis, infernalBlade, inflame, intimidate, metallicize, powerThrough, pummel, rage, rampage, secondWind, seeingRed, severSoul, spotWeakness, uppercut, whirlwind];
-                    rares = [...rares, barricade, berserk, bludgeon, brutality, demonForm, doubleTap, corruption, exhume, feed, impervious, juggernaut, limitBreak, offering, reaper];
+                    rares = [...rares, barricade, berserk, bludgeon, brutality, demonForm, doubleTap, corruption, exhume, feed, fiendFire, immolate, impervious, juggernaut, limitBreak, offering, reaper];
                     deck.push(bash());
                 }
                 if(getId("useSilent").checked) {
-                    normals = [...normals, acrobatics, backflip, bane, bladeDance, cloakAndDagger, daggerSpray, daggerThrow, deadlyPoison, deflect, dodgeAndRoll, flyingKnee, outmaneuver, poisonedStab, prepared, quickSlash, slice, suckerPunch, accuracy, allOutAttack, backstab, blur, bouncingFlask, caltrops, catalyst, concentrate, cripplingCloud, dash, distraction, expertise, finisher, footwork, heelHook, infiniteBlades, legSweep, noxiousFumes, predator, skewer, terror];
+                    normals = [...normals, acrobatics, backflip, bane, bladeDance, cloakAndDagger, daggerSpray, daggerThrow, deadlyPoison, deflect, dodgeAndRoll, flyingKnee, outmaneuver, poisonedStab, prepared, quickSlash, slice, suckerPunch, accuracy, allOutAttack, backstab, blur, bouncingFlask, calculatedGamble, caltrops, catalyst, concentrate, cripplingCloud, dash, distraction, expertise, finisher, footwork, heelHook, infiniteBlades, legSweep, noxiousFumes, predator, skewer, terror];
                     rares = [...rares, thousandCuts, adrenaline, afterImage, burst, dieDieDie, doppelganger, envenom, grandFinale, stormOfSteel, toolsOfTheTrade];
                     deck.push(neutralize());
                 }
@@ -5520,7 +5563,7 @@ getId('relicReward').style.display = 'none';
                 if(hasBuff("Deva Form")) {gainBuff("Deva Form", 1);}
                 if(stats.rested) {ifRelic("Ancient Tea Set", function(){energy += 2});}
                 if(turn % 3 == 0) {ifRelic("Happy Flower", function(){energy++});}
-                ifRelic("Slaver’s Collar", function(){if(bossBattle || eliteBattle){energy++;}});
+                if(bossBattle||eliteBattle){ifRelic("Slaver’s Collar", function(){energy++;});}
                 loseBuff("Next Turn Energy");
                 stats.rested = false;
                 if(stats.attacksThisTurn == 0) {ifRelic("Art of War", function(){energy++});}
