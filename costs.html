@@ -396,7 +396,7 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.4.1";
+            let currentVersion = "v4.4.2";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
@@ -1283,6 +1283,19 @@ if(multiChoice.includes(num)) {
             };
             
             function showMap() {
+                if(hp <= 0) {
+                    // make sure that you're dead (OOC things)
+                    hp = 0;
+                    alert("You died! D:\nRestarting game...");
+                    getId("gameScreen").style.display = "none";
+                    getId("rewardsScreen").style.display = "none";
+                    music.enemy.pause(); music.elite.pause(); music.boss1.pause(); music.boss2.pause(); music.boss3.pause();
+                    music.enemy.currentTime = 0; music.elite.currentTime = 0;
+                    music.boss1.currentTime = 0; music.boss2.currentTime = 0; music.boss3.currentTime = 0;
+                    music.death.play();
+                    timerRunning = false; updateStatLine();
+                    resetGame();
+                }
                 music.shop.pause(); music.rest.pause();
                 music.shop.currentTime = 0; music.rest.currentTime = 0;
                 if(mapY >= 15 && (getId("ascensionLevel").value < 21 || actNum != 3 || mapY >= 16)) {
@@ -1584,7 +1597,7 @@ updateStatLine();
                 } else if (map[y][x] == "❓") {
                     getId("mapScreen").style.display = "none";
                     getId("eventScreen").style.display = "block";
-                    ifRelic("Sssserpent Head", function(){gold += 50;});
+                    ifRelic("Ssserpent Head", function(){gold += 50;});
                     let event = choice([...possibleEvents["Act "+actNum.toString()], ...possibleEvents["All Acts"]]);
                     let chestChance = 0;
                     ifRelic("Tiny Chest", function(){chestChance+=0.25});
@@ -5273,6 +5286,19 @@ getId("woogleButton").onclick = function() {showMap();}
                     }
                     updateHtml();
                 }
+                if(hp <= 0) {
+                    hp = 0;
+                    alert("You died! D:\nRestarting game...");
+                    getId("gameScreen").style.display = "none";
+                    getId("rewardsScreen").style.display = "none";
+                    music.enemy.pause(); music.elite.pause(); music.boss1.pause(); music.boss2.pause(); music.boss3.pause();
+                    music.enemy.currentTime = 0; music.elite.currentTime = 0;
+                    music.boss1.currentTime = 0; music.boss2.currentTime = 0; music.boss3.currentTime = 0;
+                    music.death.play();
+                    timerRunning = false; updateStatLine();
+                    resetGame();
+                    return;
+                }
                 if(!enemies.includes(target) || !target) {target = enemies[0];}
                 if(enemies.length == 0 || enemies.filter(x=>x.name=="Darkling"&&x.hp==1).length == enemies.length) {
                     music.boss1.pause(); music.boss2.pause(); music.boss3.pause();
@@ -5319,7 +5345,11 @@ getId("woogleButton").onclick = function() {showMap();}
                     } else {
                         getId("potionReward").style.display = "none";
                     }
-                    if(eliteBattle && !relics.map(x=>x.name).includes("N’loth’s Hungry Face")) {
+                    if(eliteBattle) {
+                        if(relics.map(x=>x.name).includes("N’loth’s Hungry Face")) {
+                            getId("relicReward").style.display = "none";
+                            relics = relics.filter(x=>x.name!="N’loth’s Hungry Face");
+                        }
                         getId("relicReward").style.display = "block";
                         let newRelic = randRelic();
                         getId("relicReward").innerHTML = newRelic.name+"<span class='txt'>"+newRelic.desc+"</span>";
@@ -5332,9 +5362,6 @@ getId('relicReward').style.display = 'none';
                         `);
                     } else {
                         getId("relicReward").style.display = "none";
-                        if(eliteBattle) {
-                            relics = relics.filter(x=>x.name!="N’loth’s Hungry Face");
-                        }
                     }
                     if(bossBattle) {
                         ifRelic("Cursed Key", function(){
@@ -5347,18 +5374,6 @@ getId('relicReward').style.display = 'none';
                         getId("bossRelicReward").style.display = "none";
                     }
                     ifRelic("Face of Cleric", function(){maxHp++; hp++;});
-                }
-                if(hp <= 0) {
-                    hp = 0;
-                    alert("You died! D:\nRestarting game...");
-                    getId("gameScreen").style.display = "none";
-                    getId("rewardsScreen").style.display = "none";
-                    music.enemy.pause(); music.elite.pause(); music.boss1.pause(); music.boss2.pause(); music.boss3.pause();
-                    music.enemy.currentTime = 0; music.elite.currentTime = 0;
-                    music.boss1.currentTime = 0; music.boss2.currentTime = 0; music.boss3.currentTime = 0;
-                    music.death.play();
-                    timerRunning = false; updateStatLine();
-                    resetGame();
                 }
                 let x = document.getElementsByClassName("txt");
                 for (t of x) {
@@ -5682,6 +5697,7 @@ getId('relicReward').style.display = 'none';
                 deck = [bash(), strike(), strike(), strike(), neutralize(), defend(), defend(), defend(), eruption(), vigilance()];
                 relics = [{name: "Snake Ring", desc: "At the start of each combat, draw 2 more cards."}];
                 potions = [];
+                maxPotions = 3;
                 drawPile = shuffle(deck.slice(0)); // no shallow copy
                 discardPile = [];
                 exhaustPile = [];
