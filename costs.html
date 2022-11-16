@@ -396,7 +396,7 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.5";
+            let currentVersion = "v4.5.1";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
@@ -3077,6 +3077,9 @@ getId("woogleButton").onclick = function() {showMap();}
                     if(r.name == "Fusion Hammer") {
                         getId("smither").style.display = "none";
                     }
+                    if(r.name == "Cursed Key") {
+                        deck.push(new Card("Key Curse", 0, "Curse", "Unplayable.", function(){}, ["unplayable"]));
+                    }
                     updateStatLine();
                 } else if(cardNumber == -1) {
                     updateStatLine();
@@ -3234,7 +3237,7 @@ getId("woogleButton").onclick = function() {showMap();}
             let bossRelicPool = [
                 {name: "Busted Crown", desc: "+1 Max Energy. Card reward screens have only 1 card to choose from."},
                 {name: "Coffee Dripper", desc: "+1 Max Energy. You can no longer rest at rest sites."},
-                {name: "Cursed Key", desc: "+1 Max Energy. Whenever you defeat a boss, get Curse of the Key.<br/><i>(Curse of the Key: Unplayable.)</i>"},
+                {name: "Cursed Key", desc: "+1 Max Energy. Whenever you defeat a boss (including this one), get a Key Curse.<br/><i>(Key Curse: Unplayable.)</i>"},
                 {name: "Ectoplasm", desc: "+1 Max Energy. You can no longer gain Gold."},
                 {name: "Empty Cage", desc: "On pickup, remove 2 cards from your deck."},
                 {name: "Fusion Hammer", desc: "+1 Max Energy. You can no longer smith at rest sites."},
@@ -5407,7 +5410,7 @@ getId('relicReward').style.display = 'none';
                     }
                     if(bossBattle) {
                         ifRelic("Cursed Key", function(){
-                            deck.push(new Card("Curse of the Key", 0, "Curse", "Unplayable.", function(){}, ["unplayable"]));
+                            deck.push(new Card("Key Curse", 0, "Curse", "Unplayable.", function(){}, ["unplayable"]));
                         });
                         getId("bossRelicReward").style.display = "block";
                         getId("bossRelicReward").innerHTML = "Choose a Relic";
