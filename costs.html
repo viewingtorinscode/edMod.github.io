@@ -396,7 +396,7 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.4.3";
+            let currentVersion = "v4.5";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
@@ -609,22 +609,19 @@ if(multiChoice.includes(num)) {
                     if(getId("restScreen").style.display != "none" && getId("smither").style.display != "none") {upgradeDialog();}
                 } else if(e.keyCode == 44) { // ,
                     if(potions.length >= 1) {
-                        let x = eval("let tgt=target; "+potions[0].effect);
-                        ifRelic("Sacred Bark", function(){let y = eval("let tgt=target; "+potions[0].effect);});
-                        potions.splice(0, 1);
-                        updateHtml();}
+                        alert(getId("potion-0").onclick);
+                        let x = getId("potion-0").onclick; x();
+                    }
                 } else if(e.keyCode == 46) { // .
                     if(potions.length >= 2) {
-                        let x = eval("let tgt=target; "+potions[1].effect);
-                        ifRelic("Sacred Bark", function(){let y = eval("let tgt=target; "+potions[1].effect);});
-                        potions.splice(1, 1);
-                        updateHtml();}
+                        alert(getId("potion-1").onclick);
+                        let x = getId("potion-1").onclick; x();
+                    }
                 } else if(e.keyCode == 47) { // /
                     if(potions.length >= 3) {
-                        let x = eval("let tgt=target; "+potions[2].effect);
-                        ifRelic("Sacred Bark", function(){let y = eval("let tgt=target; "+potions[2].effect);});
-                        potions.splice(2, 1);
-                        updateHtml();}
+                        alert(getId("potion-2").onclick);
+                        let x = getId("potion-2").onclick; x();
+                    }
                 } else if(e.keyCode == 111 && getId("gameScreen").style.display != "none") { // o
                     let t = enemies.indexOf(target)+1; if(t >= enemies.length) {target = enemies[0];} else {target = enemies[t];}
                     updateHtml();
@@ -1184,7 +1181,7 @@ if(multiChoice.includes(num)) {
                 if(shiv) {finalAmt += hasBuff("Accuracy"); ifRelic("Wrist Blade", function(){finalAmt += 6;});}
                 if(strike) {ifRelic("Strike Dummy", function(){finalAmt += 3;})}
                 if(enemy.hasBuff("Vulnerable")) {finalAmt = Math.round(finalAmt * 1.5);}
-                finalAmt += Math.floor(target.hasBuff("Mark") * hasBuff("Precision") / 5);
+                finalAmt *= 1 + enemy.hasBuff("Slow");
                 if(enemy.hasBuff("Flight")) {finalAmt = Math.round(finalAmt*0.5); if(actuallyDeal){
                     enemy.loseBuff("Flight", 1); if(!enemy.hasBuff("Flight")) {enemy.gainBuff("Stunned", 3);}
                 }}
@@ -1194,15 +1191,16 @@ if(multiChoice.includes(num)) {
                     if(actuallyDeal) loseBuff("Pen Nib");
                     finalAmt *= 2;
                 }
-                if(enemy.hasBuff("Phasing") && turn % 2 == 0) {finalAmt = 1;}
                 if(finalAmt > 0) {
                     finalAmt += hasBuff("Strength") + hasBuff("Vigor");
                     ifRelic("Red Skull", function(){if(hp<=0.5*maxHp){finalAmt += 3;}});
                     finalAmt -= hasBuff("Minus Strength");
+                    finalAmt += Math.floor(target.hasBuff("Mark") * hasBuff("Precision") / 5);
                     if(finalAmt < 5 && relics.map(x=>x.name).includes("The Boot")) {finalAmt = 5;}
                 }
                 if(hasBuff("Weak")) {finalAmt = Math.round(finalAmt * 0.75);}
                 if(enemy.name == "Darkling") {finalAmt = Math.min(finalAmt, enemy.hp - 1);}
+                if(enemy.hasBuff("Phasing") && turn % 2 == 0) {finalAmt = 1;}
                 return finalAmt;
             }
             function calcYourOOCDamage(amt, shiv=false, strike=false) {
@@ -1252,7 +1250,7 @@ if(multiChoice.includes(num)) {
                     }, i * 10);}
                 }
                 enemy.loseBuff("Block", finalAmt);
-                if(dealt > 0) {
+                if(dealt) {
                     if(hasBuff("Envenom")) {enemy.gainBuff("Poison", hasBuff("Envenom"));}
                     enemy.loseBuff("Plated Armor", 1);
                     if(enemy.hasBuff("Curl Up")) {
@@ -3091,7 +3089,7 @@ getId("woogleButton").onclick = function() {showMap();}
                 for(let r of relics) {
                     if(r.name == rel) {foundIt = true; func(...args);}
                 }
-                if(foundIt) {
+                if(foundIt && !["Red Skull", "Duality", "Warped Tongs"].includes(rel)) {
                     let relicImg = document.createElement("img");
                     relicImg.src = "StS/"+rel.replaceAll(" ","").replaceAll("’","")+".png";
                     relicImg.style.width = "300px";
@@ -3314,7 +3312,7 @@ getId("woogleButton").onclick = function() {showMap();}
             }
             
             let potionPool = [
-                {name: "Aggressive", desc: "You must be aggressive to drink this...", effect: 'gainBuff("Strength", 10); gainBuff("Divinity", 1); gainBuff("Hex", 3); gainBuff("Dexterity Down", 3); for(let e of enemies){e.gainBuff("Enrage", 3)}'},
+                {name: "Aggressive", desc: "You must be aggressive to drink this...", effect: 'gainBuff("Strength", 3); gainBuff("Divinity", 1); gainBuff("Hex", 3); gainBuff("Dexterity Down", 3); for(let e of enemies){e.gainBuff("Enrage", 3)}'},
                 {name: "Ancient", desc: "Gain 1 Artifact.", effect: 'gainBuff("Artifact", 1)'},
                 {name: "Block", desc: "Gain 20 Block.", effect: 'gainBuff("Block", 20)'},
                 {name: "Blood", desc: "Heal for 20% of your Max HP.", effect: 'hp = Math.min(maxHp, hp + Math.round(0.2 * maxHp))'},
@@ -5048,6 +5046,7 @@ getId("woogleButton").onclick = function() {showMap();}
                 for(let potion of potions) {
                     let potionElem = document.createElement("button");
                     potionElem.setAttribute("class", "tt");
+                    potionElem.id = "potion-"+potions.indexOf(potion);
                     potionElem.setAttribute("onclick", `let x = function(tgt){${potion.effect}}; if(getId("gameScreen").style.display != "none" || ${(["Fruit Juice", "Blood"].includes(potion.name) ? "true" : "false")}) {x(target); ifRelic("Sacred Bark", function(){x(target);});} potions.splice(${potions.indexOf(potion)}, 1); ifRelic("Toy Ornithopter", function(){hp = Math.min(maxHp, hp + 5)}); if(getId("gameScreen").style.display != "none" && ${(["Fruit Juice", "Blood"].includes(potion.name) ? "false" : "true")}){updateHtml();}`);
                     potionElem.innerHTML = potion.name+" Potion";
                     let potionTooltip = document.createElement("span");
@@ -5368,8 +5367,8 @@ getId("woogleButton").onclick = function() {showMap();}
                             card.flags = card.flags.filter(x=>x.split(" ")[0] != "aftercost");
                         }
                     }
-                    ifRelic("Meat on the Bone", function(){hp = Math.min(Math.round(0.5*maxHp), hp + 12)});
-                    ifRelic("Burning Blood", function(){hp = Math.min(maxHp, hp + 6);});
+                    ifRelic("Meat on the Bone", function(){hp = Math.min(maxHp, Math.min(hp + 6, Math.floor(0.5 * maxHp)));});
+                    ifRelic("Burning Blood", function(){hp = Math.min(maxHp, hp + 3);});
                     getId("rewardsScreen").style.display = "block";
                     getId("goldReward").style.display = "block";
                     getId("cardReward").style.display = "block";
