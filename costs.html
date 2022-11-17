@@ -396,7 +396,7 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.5.2";
+            let currentVersion = "v4.5.2b";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
@@ -1181,7 +1181,7 @@ if(multiChoice.includes(num)) {
                 if(shiv) {finalAmt += hasBuff("Accuracy"); ifRelic("Wrist Blade", function(){finalAmt += 6;});}
                 if(strike) {ifRelic("Strike Dummy", function(){finalAmt += 3;})}
                 if(enemy.hasBuff("Vulnerable")) {finalAmt = Math.round(finalAmt * 1.5);}
-                finalAmt *= 1 + enemy.hasBuff("Slow");
+                finalAmt *= 1 + 0.1*enemy.hasBuff("Slow");
                 if(enemy.hasBuff("Flight")) {finalAmt = Math.round(finalAmt*0.5); if(actuallyDeal){
                     enemy.loseBuff("Flight", 1); if(!enemy.hasBuff("Flight")) {enemy.gainBuff("Stunned", 3);}
                 }}
