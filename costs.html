@@ -396,7 +396,7 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.5.2b";
+            let currentVersion = "v4.5.3";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
@@ -609,17 +609,14 @@ if(multiChoice.includes(num)) {
                     if(getId("restScreen").style.display != "none" && getId("smither").style.display != "none") {upgradeDialog();}
                 } else if(e.keyCode == 44) { // ,
                     if(potions.length >= 1) {
-                        alert(getId("potion-0").onclick);
                         let x = getId("potion-0").onclick; x();
                     }
                 } else if(e.keyCode == 46) { // .
                     if(potions.length >= 2) {
-                        alert(getId("potion-1").onclick);
                         let x = getId("potion-1").onclick; x();
                     }
                 } else if(e.keyCode == 47) { // /
                     if(potions.length >= 3) {
-                        alert(getId("potion-2").onclick);
                         let x = getId("potion-2").onclick; x();
                     }
                 } else if(e.keyCode == 111 && getId("gameScreen").style.display != "none") { // o
