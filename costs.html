@@ -396,7 +396,7 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.5.3";
+            let currentVersion = "v4.5.4";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
@@ -1116,7 +1116,7 @@ if(multiChoice.includes(num)) {
                         addStatus("Wound", this.hasBuff("Painful Stabs"));
                         if(hasBuff("Thorns") && procThorns) {dealDamage(this, hasBuff("Thorns")); updateHtml();}
                         loseBuff("Plated Armor", 1);
-                        let red = dealt * 0.02 + 0.24;
+                        let red = Math.min(0.7, dealt * 0.02 + 0.24);
                         let i = 0;
                         while(red > 0) {
                             setTimeout(function(r){getId("damage").style.opacity = r;}, i * 10, red);
@@ -1285,7 +1285,6 @@ if(multiChoice.includes(num)) {
                 if(hp <= 0) {
                     // make sure that you're dead (OOC things)
                     hp = 0;
-                    alert("You died! D:\nRestarting game...");
                     getId("gameScreen").style.display = "none";
                     getId("rewardsScreen").style.display = "none";
                     music.enemy.pause(); music.elite.pause(); music.boss1.pause(); music.boss2.pause(); music.boss3.pause();
@@ -1293,6 +1292,12 @@ if(multiChoice.includes(num)) {
                     music.boss1.currentTime = 0; music.boss2.currentTime = 0; music.boss3.currentTime = 0;
                     music.death.play();
                     timerRunning = false; updateStatLine();
+                    // get the formatted deck
+                    d=deck.map(x=>x.name);o={};for(let i of d){if(Object.keys(o).includes(i)){o[i]++;}else{o[i]=1;}}t=[];for(let i of Object.keys(o).sort()){t.push([i,o[i]]);}T=t.map(x=>x[1]+"x "+x[0]).join("\n");
+                    let floor = mapY + (actNum * 15) - 15;
+                    // because relics and act start at 1, floor starts at ???, deck starts at 10 and gold starts at 99, subtract some pts
+                    let score = Math.round(floor*2 + relics.length*4 + actNum*10 + deck.length*1 + gold*0.04 - 29.96) * 5;
+                    showPopup("<b>=== you died D: ===</b>\n- your final deck was:\n"+T+"\n- you died on floor "+floor+" to OOC damage\n- your score: "+score);
                     resetGame();
                 }
                 music.shop.pause(); music.rest.pause();
@@ -1310,7 +1315,14 @@ if(multiChoice.includes(num)) {
                         }
                     } else if(actNum == 3) {
                         actNum = 0;
-                        timerRunning = false; updateStatLine(); music.win.play(); announceMusic("A Return To Order"); alert("You win! Nice job"); return;
+                        timerRunning = false; updateStatLine(); music.win.play(); announceMusic("A Return To Order");
+                        // get the formatted deck
+                        d=deck.map(x=>x.name);o={};for(let i of d){if(Object.keys(o).includes(i)){o[i]++;}else{o[i]=1;}}t=[];for(let i of Object.keys(o).sort()){t.push([i,o[i]]);}T=t.map(x=>x[1]+"x "+x[0]).join("\n");
+                        let floor = mapY + (actNum * 15) - 15;
+                        // because relics and act start at 1, floor starts at ???, deck starts at 10 and gold starts at 99, subtract some pts
+                        let score = Math.round(floor*2 + relics.length*4 + actNum*10 + deck.length*1 + gold*0.04 - 29.96) * 5;
+                        showPopup("<b>=== you won! :D ===</b>\n- your final deck was:\n"+T+"\n- your score: "+score);
+                        return;
                     }
                 }
                 updateStatLine();
@@ -2878,7 +2890,7 @@ getId("woogleButton").onclick = function() {showMap();}
             }
             let cardToUpgrade;
             async function upgradeDialog() {
-                let chosen = await choose(deck.filter(x=>(!x.name.includes("+"))), "Choose a card to upgrade.");
+                let chosen = await choose(deck.filter(x=>(!x.name.includes("+"))), "Choose a card to upgrade.", false, true);
                 cardToUpgrade = chosen;
                 let upg = upgradedCards[cardToUpgrade.name]();
                 getId("upgradeDialog").style.display = "block";
@@ -2932,8 +2944,8 @@ getId("woogleButton").onclick = function() {showMap();}
                     deck.push(eruption()); deck.push(vigilance());
                 }
                 while(deck.length < 10) {
-                    deck.push(strike());
                     deck.push(defend());
+                    if(deck.length < 10) {deck.push(strike());}
                 }
                 if(getId("ascensionLevel").value >= 10) {deck.push(new Card("Ascenders’ Bane", 0, "Curse", "Unplayable. Ethereal.", function(enemy){}, ["unplayable", "ethereal"]))}
                 randCard = function(upg) {
@@ -2973,14 +2985,11 @@ getId("woogleButton").onclick = function() {showMap();}
                     }
                     alum = 0; ifRelic("Aluminum Foil", function(){generated[alum] = r(); alum++;});
                 }
-                //alert("Generated ten cards -> "+generated.map(x=>x.number.toString().slice(2, 5)));
                 let amountOfCards = 3;
                 ifRelic("Question Card", function(){amountOfCards++;});
                 ifRelic("Busted Crown", function(){amountOfCards -= 2;});
                 amountOfCards = Math.min(amountOfCards, 10);
-                //alert("We need "+amountOfCards+" card(s)");
                 let newCards = generated.slice(0, amountOfCards);
-                //alert("New cards -> "+newCards.map(x=>x.number.toString().slice(2, 5)));
                 possibleCards = newCards;
                 getId("cardModal").style.display = "block";
                 for(let x=0; x<10; x++) {
@@ -3085,30 +3094,34 @@ getId("woogleButton").onclick = function() {showMap();}
             let possibleCards = [];
             
             let ifRelic = function(rel, func, args=[]) {
+                try{
                 let foundIt = false;
                 for(let r of relics) {
-                    if(r.name == rel) {foundIt = true; func(...args);}
-                }
-                if(foundIt && !["Red Skull", "Duality", "Warped Tongs"].includes(rel)) {
-                    let relicImg = document.createElement("img");
-                    relicImg.src = "StS/"+rel.replaceAll(" ","").replaceAll("’","")+".png";
-                    relicImg.style.width = "300px";
-                    relicImg.style.height = "300px";
-                    relicImg.style.position = "absolute";
-                    relicImg.style.left = "0px";
-                    relicImg.style.top = "0px";
-                    let elemId = Math.random().toString();
-                    relicImg.id = elemId;
-                    document.body.appendChild(relicImg);
-                    let red = 1;
-                    let i = 0;
-                    while(red > 0) {
-                        setTimeout(function(r){getId(elemId).style.opacity = r;}, i * 10, red);
-                        i++;
-                        red -= 0.012;
-                        if(red < 0) {setTimeout(function(){getId(elemId).remove();}, i * 10);}
+                    if(r.name == rel) {
+                        foundIt = true;
+                        func(...args);
+                        let ind = relics.indexOf(r);
+                        let relicImg = document.createElement("img");
+                        relicImg.src = "StS/"+rel.replaceAll(" ","").replaceAll("’","")+".png";
+                        relicImg.style.width = "100px";
+                        relicImg.style.height = "100px";
+                        relicImg.style.position = "absolute";
+                        relicImg.style.left = (530 + 40 * ind) + "px";
+                        relicImg.style.top = "-25px";
+                        let elemId = Math.random().toString();
+                        relicImg.id = elemId;
+                        document.body.appendChild(relicImg);
+                        let red = 1;
+                        let i = 0;
+                        while(red > 0) {
+                            setTimeout(function(r){getId(elemId).style.opacity = r;}, i * 10, red);
+                            i++;
+                            red -= 0.009;
+                            if(red < 0) {setTimeout(function(){getId(elemId).remove();}, i * 10);}
+                        }
                     }
                 }
+                }catch(e){alert("err -> "+e)}
             }
             let commonRelicPool = [
                 // Vanilla
@@ -4013,7 +4026,7 @@ getId("woogleButton").onclick = function() {showMap();}
             let maxHp = 70;
             let buffs = [];
             let stats = {timesLostHp: 0, attacksThisTurn: 999, skillsThisTurn: 999, powersThisTurn: 999, rested: false, lastType: "None", pers: 0, windmill: 0, mantraGain: 0, cardsThisTurn: 999, bloodSugar: 0};
-            let gold = 0;
+            let gold = 99;
             let mapX = 2;
             let mapY = 0;
             let actNum = 1;
@@ -4973,7 +4986,7 @@ getId("woogleButton").onclick = function() {showMap();}
             let hardPools = [
                 ["The harder enemy pools, used for the later part of the Act."],
                 [
-                    [allGremlins, allGremlins, allGremlins, allGremlins]
+                    [allGremlins, allGremlins, allGremlins, allGremlins],
                     [[acidSlimeL, spikeSlimeL]],
                     [[acidSlimeS, spikeSlimeS], [acidSlimeS, spikeSlimeS], [acidSlimeS, spikeSlimeS], [acidSlimeS, spikeSlimeS], [acidSlimeS, spikeSlimeS]],
                     [[bSlaver]], [[rSlaver]],
@@ -5330,7 +5343,6 @@ getId("woogleButton").onclick = function() {showMap();}
                 }
                 if(hp <= 0) {
                     hp = 0;
-                    alert("You died! D:\nRestarting game...");
                     getId("gameScreen").style.display = "none";
                     getId("rewardsScreen").style.display = "none";
                     music.enemy.pause(); music.elite.pause(); music.boss1.pause(); music.boss2.pause(); music.boss3.pause();
@@ -5338,6 +5350,12 @@ getId("woogleButton").onclick = function() {showMap();}
                     music.boss1.currentTime = 0; music.boss2.currentTime = 0; music.boss3.currentTime = 0;
                     music.death.play();
                     timerRunning = false; updateStatLine();
+                    // get the formatted deck
+                    d=deck.map(x=>x.name);o={};for(let i of d){if(Object.keys(o).includes(i)){o[i]++;}else{o[i]=1;}}t=[];for(let i of Object.keys(o).sort()){t.push([i,o[i]]);}T=t.map(x=>x[1]+"x "+x[0]).join("\n");
+                    let floor = mapY + (actNum * 15) - 15;
+                    // because relics and act start at 1, floor starts at ???, deck starts at 10 and gold starts at 99, subtract some pts
+                    let score = Math.round(floor*2 + relics.length*4 + actNum*10 + deck.length*1 + gold*0.04 - 29.96) * 5;
+                    showPopup("<b>=== you died D: ===</b>\n- your final deck was:\n"+T+"\n- you died on floor "+floor+" to "+enemies.map(x=>x.name).join(" + ")+"\n- your score: "+score);
                     resetGame();
                     return;
                 }
@@ -5572,7 +5590,7 @@ getId('relicReward').style.display = 'none';
                 stats.cardsThisTurn = 0;
                 if(hasBuff("Barricade")==0 && hasBuff("Blur")==0){loseBuff("Block", (relics.map(x=>x.name).includes("Calipers") ? 15 : 9999));}
                 loseBuff("Blur", 1);
-                if(turn == 0) {
+                if(turn == 1) {
                     ifRelic("Anchor", function(){gainBuff("Block", 10)});
                     ifRelic("Lantern", function(){energy++});
                 }
