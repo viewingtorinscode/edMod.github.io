@@ -376,6 +376,7 @@ Credits (in order of importance):
         <span style="color: gray;" id="version"></span>
         <script>
             let rng = 0.123456789;
+            let rngWasRandom = true;
             // RNG types: basic, combat, enemy, junk, map, card
             let rngLists = {};
             function getRng(what) {
@@ -408,7 +409,7 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.6";
+            let currentVersion = "v4.6.1";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
@@ -450,7 +451,7 @@ Credits (in order of importance):
                     cardButton.setAttribute("class", c.type+" tt");
                     let tips = makeTooltip(c);
                     let upCard = (upgradedCards[c.name] ? upgradedCards[c.name] : 0);
-                    if(showUps && upCard) tips = tips.replace("</span>", "<br/>======<br/>"+makeTooltip(upCard()).split("class='txt'>")[1]);
+                    if(showUps && upCard) tips = tips.replace("</span>", "<br/>=== Upgrades to: ===<br/>"+makeTooltip(upCard()).split("class='txt'>")[1]);
                     cardButton.innerHTML = tips;
                     getId("selectionModalContent").appendChild(cardButton);
                     let helpNumber = document.createElement("span");
@@ -726,7 +727,7 @@ if(multiChoice.includes(num)) {
                 "Lifelink": "Survives fatal blows on 1 HP. Dies when all enemies have 1 HP.",
                 "Fading": "Dies in [AMT] turns.",
                 "Shifting": "Upon receiving damage, loses that much Strength until end of turn.",
-                "Strength Up": "At end of turn, gain [AMT] Strength.",
+                "Strength Up": "At end of next turn, gain [AMT] Strength.",
                 "Malleable": "Upon recieving damage, gains [BAMT] Block. Goes up when triggered, resets at the end of its turn.",
                 "Reactive": "Upon recieving damage, changes its intent.",
                 "Constricting": "At the end of your turn, deals [DAMT] damage to you.",
@@ -741,6 +742,7 @@ if(multiChoice.includes(num)) {
                 "ethereal": "Disappears if not used.",
                 "exhaust": "Removed until end of combat.",
                 "retain": "Not discarded at end of turn.",
+                "innate": "Will be in your hand at the start of every combat.",
                 "scry": "Look at the top X cards of your deck. You may discard any of them.",
                 "enter": "Entering a stance causes you to exit all others.",
                 "shiv": "Costs 0 energy, has “Deals [SHIV] damage. Exhaust.”",
@@ -1276,6 +1278,11 @@ if(multiChoice.includes(num)) {
                         while(int == enemy.intent) {int = choiceR("combat", enemy.attacks);}
                         enemy.intent = int;
                     }
+                    if(enemy.name == "Lagavulin") {
+                        enemy.intent = enemy.attacks[3];
+                        enemy.gainBuff("Stunned", 1);
+                        enemy.loseBuff("Metallicize");
+                    }
                 }
                 if(finalAmt > 0) {
                     enemy.dealDamage(enemy.hasBuff("Thorns"), false);
@@ -1309,7 +1316,7 @@ if(multiChoice.includes(num)) {
                     let floor = mapY + (actNum * 15) - 15;
                     // because relics and act start at 1, floor starts at ???, deck starts at 10 and gold starts at 99, subtract some pts
                     let score = Math.round(floor*2 + relics.length*4 + actNum*10 + deck.length*1 + gold*0.04 - 29.96) * 5;
-                    showPopup("<b>=== you died D: ===</b>\n- your final deck was:\n"+T+"\n- you died on floor "+floor+" to OOC damage\n- your score: "+score);
+                    showPopup("<b>=== you died D: ===</b>\n- the seed was '"+getId("seed").value+"' ("+(rngWasRandom?"randomized":"set")+" seed)\n- your final deck was:\n"+T+"\n- you died on floor "+floor+" to OOC damage\n- your score: "+score);
                     resetGame();
                 }
                 music.shop.pause(); music.rest.pause();
@@ -1333,7 +1340,7 @@ if(multiChoice.includes(num)) {
                         let floor = mapY + (actNum * 15) - 15;
                         // because relics and act start at 1, floor starts at ???, deck starts at 10 and gold starts at 99, subtract some pts
                         let score = Math.round(floor*2 + relics.length*4 + actNum*10 + deck.length*1 + gold*0.04 - 29.96) * 5;
-                        showPopup("<b>=== you won! :D ===</b>\n- your final deck was:\n"+T+"\n- your score: "+score);
+                        showPopup("<b>=== you won! :D ===</b>\n- the seed was '"+getId("seed").value+"' ("+(rngWasRandom?"randomized":"set")+" seed)\n- your final deck was:\n"+T+"\n- your score: "+score);
                         return;
                     }
                 }
@@ -3117,7 +3124,7 @@ getId("woogleButton").onclick = function() {showMap();}
                         relicImg.style.width = "100px";
                         relicImg.style.height = "100px";
                         relicImg.style.position = "absolute";
-                        relicImg.style.left = (530 + 40 * ind) + "px";
+                        relicImg.style.left = (12 * getId("statusLineB4").textContent.length + 12 + 40 * ind) + "px";
                         relicImg.style.top = "-25px";
                         let elemId = Math.random().toString();
                         relicImg.id = elemId;
@@ -4179,40 +4186,40 @@ getId("woogleButton").onclick = function() {showMap();}
                 {intent: "nerfing", desc: "apply a negative effect", effect: apply("Weak", 2)}
             ], ["randomize", "repeatable"], {"Curl Up": 4 + Math.floor(getRng("enemy")*4)}, {"Curl Up": 9 + Math.floor(getRng("enemy")*4)});
             let looter = () => new Enemy("Looter", "n", 46, 48, [
-                {intent: "attack-buff 10", desc: "deal [DAM10] damage and gain a buff", effect: attack_buff(10, "Thievery", 15)},
-                {intent: "attack-buff 10", desc: "deal [DAM10] damage and gain a buff", effect: attack_buff(10, "Thievery", 15)},
-                {intent: "attack-buff 12", desc: "deal [DAM12] damage and gain a buff", effect: attack_buff(12, "Thievery", 15)},
+                {intent: "attacking 10", desc: "deal [DAM10] damage", effect: attack_buff(10, "Thievery", 15)},
+                {intent: "attacking 10", desc: "deal [DAM10] damage", effect: attack_buff(10, "Thievery", 15)},
+                {intent: "attacking 12", desc: "deal [DAM12] damage", effect: attack_buff(12, "Thievery", 15)},
                 {intent: "blocking", desc: "block", effect: block(6)},
                 {intent: "unknown", desc: "escape with your gold", effect: function(me){enemies.splice(enemies.indexOf(me), 1); gold -= me.hasBuff("Thievery");}}
             ], [
-                {intent: "attack-buff 11", desc: "deal [DAM11] damage and gain a buff", effect: attack_buff(11, "Thievery", 15)},
-                {intent: "attack-buff 11", desc: "deal [DAM11] damage and gain a buff", effect: attack_buff(11, "Thievery", 15)},
-                {intent: "attack-buff 14", desc: "deal [DAM14] damage and gain a buff", effect: attack_buff(14, "Thievery", 15)},
+                {intent: "attacking 11", desc: "deal [DAM11] damage", effect: attack_buff(11, "Thievery", 15)},
+                {intent: "attacking 11", desc: "deal [DAM11] damage", effect: attack_buff(11, "Thievery", 15)},
+                {intent: "attacking 14", desc: "deal [DAM14] damage", effect: attack_buff(14, "Thievery", 15)},
                 {intent: "blocking", desc: "block", effect: block(6)},
                 {intent: "unknown", desc: "escape with your gold", effect: function(me){enemies.splice(enemies.indexOf(me), 1); gold -= me.hasBuff("Thievery");}}
             ], [
-                {intent: "attack-buff 11", desc: "deal [DAM11] damage and gain a buff", effect: attack_buff(11, "Thievery", 20)},
-                {intent: "attack-buff 11", desc: "deal [DAM11] damage and gain a buff", effect: attack_buff(11, "Thievery", 20)},
-                {intent: "attack-buff 14", desc: "deal [DAM14] damage and gain a buff", effect: attack_buff(14, "Thievery", 20)},
+                {intent: "attacking 11", desc: "deal [DAM11] damage", effect: attack_buff(11, "Thievery", 20)},
+                {intent: "attacking 11", desc: "deal [DAM11] damage", effect: attack_buff(11, "Thievery", 20)},
+                {intent: "attacking 14", desc: "deal [DAM14] damage", effect: attack_buff(14, "Thievery", 20)},
                 {intent: "blocking", desc: "block", effect: block(6)},
                 {intent: "unknown", desc: "escape with your gold", effect: function(me){enemies.splice(enemies.indexOf(me), 1); gold -= me.hasBuff("Thievery");}}
             ]);
             let mugger = () => new Enemy("Mugger", "n", 50, 52, [
-                {intent: "attack-buff 10", desc: "deal [DAM10] damage and gain a buff", effect: attack_buff(10, "Thievery", 15)},
-                {intent: "attack-buff 10", desc: "deal [DAM10] damage and gain a buff", effect: attack_buff(10, "Thievery", 15)},
-                {intent: "attack-buff 16", desc: "deal [DAM16] damage and gain a buff", effect: attack_buff(16, "Thievery", 15)},
+                {intent: "attacking 10", desc: "deal [DAM10] damage", effect: attack_buff(10, "Thievery", 15)},
+                {intent: "attacking 10", desc: "deal [DAM10] damage", effect: attack_buff(10, "Thievery", 15)},
+                {intent: "attacking 16", desc: "deal [DAM16] damage", effect: attack_buff(16, "Thievery", 15)},
                 {intent: "blocking", desc: "block", effect: block(11)},
                 {intent: "unknown", desc: "escape with your gold", effect: function(me){enemies.splice(enemies.indexOf(me), 1); gold -= me.hasBuff("Thievery");}}
             ], [
-                {intent: "attack-buff 11", desc: "deal [DAM11] damage and gain a buff", effect: attack_buff(11, "Thievery", 15)},
-                {intent: "attack-buff 11", desc: "deal [DAM11] damage and gain a buff", effect: attack_buff(11, "Thievery", 15)},
-                {intent: "attack-buff 18", desc: "deal [DAM18] damage and gain a buff", effect: attack_buff(18, "Thievery", 15)},
+                {intent: "attacking 11", desc: "deal [DAM11] damage", effect: attack_buff(11, "Thievery", 15)},
+                {intent: "attacking 11", desc: "deal [DAM11] damage", effect: attack_buff(11, "Thievery", 15)},
+                {intent: "attacking 18", desc: "deal [DAM18] damage", effect: attack_buff(18, "Thievery", 15)},
                 {intent: "blocking", desc: "block", effect: block(11)},
                 {intent: "unknown", desc: "escape with your gold", effect: function(me){enemies.splice(enemies.indexOf(me), 1); gold -= me.hasBuff("Thievery");}}
             ], [
-                {intent: "attack-buff 11", desc: "deal [DAM11] damage and gain a buff", effect: attack_buff(11, "Thievery", 20)},
-                {intent: "attack-buff 11", desc: "deal [DAM11] damage and gain a buff", effect: attack_buff(11, "Thievery", 20)},
-                {intent: "attack-buff 18", desc: "deal [DAM18] damage and gain a buff", effect: attack_buff(18, "Thievery", 20)},
+                {intent: "attacking 11", desc: "deal [DAM11] damage", effect: attack_buff(11, "Thievery", 20)},
+                {intent: "attacking 11", desc: "deal [DAM11] damage", effect: attack_buff(11, "Thievery", 20)},
+                {intent: "attacking 18", desc: "deal [DAM18] damage", effect: attack_buff(18, "Thievery", 20)},
                 {intent: "blocking", desc: "block", effect: block(17)},
                 {intent: "unknown", desc: "escape with your gold", effect: function(me){enemies.splice(enemies.indexOf(me), 1); gold -= me.hasBuff("Thievery");}}
             ]);
@@ -4370,20 +4377,26 @@ getId("woogleButton").onclick = function() {showMap();}
                 ], ["skip-first"]),
                 () => new Enemy("Lagavulin", "e", 110, 114, [
                     {intent: "unknown", desc: "sleep", effect: passTurn()},
+                    {intent: "unknown", desc: "sleep", effect: passTurn()},
+                    {intent: "unknown", desc: "sleep, but will wake up soon..", effect: passTurn()},
                     {intent: "attacking 18", desc: "deal [DAM18] damage", effect: attack(18)},
                     {intent: "attacking 18", desc: "deal [DAM18] damage", effect: attack(18)},
                     {intent: "meganerf", desc: "apply a powerful negative effect", effect: multi_apply([["Minus Strength", 1], ["Minus Dexterity", 1]])}
                 ], [
                     {intent: "unknown", desc: "sleep", effect: passTurn()},
+                    {intent: "unknown", desc: "sleep", effect: passTurn()},
+                    {intent: "unknown", desc: "sleep, but will wake up soon..", effect: passTurn()},
                     {intent: "attacking 20", desc: "deal [DAM20] damage", effect: attack(20)},
                     {intent: "attacking 20", desc: "deal [DAM20] damage", effect: attack(20)},
                     {intent: "meganerf", desc: "apply a powerful negative effect", effect: multi_apply([["Minus Strength", 1], ["Minus Dexterity", 1]])}
                 ], [
                     {intent: "unknown", desc: "sleep", effect: passTurn()},
+                    {intent: "unknown", desc: "sleep", effect: passTurn()},
+                    {intent: "unknown", desc: "sleep, but will wake up soon..", effect: passTurn()},
                     {intent: "attacking 20", desc: "deal [DAM20] damage", effect: attack(20)},
                     {intent: "attacking 20", desc: "deal [DAM20] damage", effect: attack(20)},
                     {intent: "meganerf", desc: "apply a powerful negative effect", effect: multi_apply([["Minus Strength", 2], ["Minus Dexterity", 2]])}
-                ], ["skip-first"]),
+                ], ["skip-first"], {"Block": 8, "Metallicize": 8}, {"Block": 8, "Metallicize": 8}),
                 () => new Enemy("Sentry", "e", 40, 42, [
                     {intent: "attacking 9", desc: "deal [DAM9] damage", effect: attack(9)},
                     {intent: "nerfing", desc: "generate Status cards", effect: status("Dazed", 2)}
@@ -5365,7 +5378,7 @@ getId("woogleButton").onclick = function() {showMap();}
                     let floor = mapY + (actNum * 15) - 15;
                     // because relics and act start at 1, floor starts at ???, deck starts at 10 and gold starts at 99, subtract some pts
                     let score = Math.round(floor*2 + relics.length*4 + actNum*10 + deck.length*1 + gold*0.04 - 29.96) * 5;
-                    showPopup("<b>=== you died D: ===</b>\n- your final deck was:\n"+T+"\n- you died on floor "+floor+" to "+enemies.map(x=>x.name).join(" + ")+"\n- your score: "+score);
+                    showPopup("<b>=== you died D: ===</b>\n- the seed was '"+getId("seed").value+"' ("+(rngWasRandom?"randomized":"set")+" seed)\n- your final deck was:\n"+T+"\n- you died on floor "+floor+" to "+enemies.map(x=>x.name).join(" + ")+"\n- your score: "+score);
                     resetGame();
                     return;
                 }
@@ -5443,7 +5456,7 @@ getId('relicReward').style.display = 'none';
                     } else {
                         getId("bossRelicReward").style.display = "none";
                     }
-                    ifRelic("Face of Cleric", function(){maxHp++; hp++;});
+                    ifRelic("Face of Cleric", function(){maxHp+=0.5; hp+=0.5;});
                 }
                 let x = document.getElementsByClassName("txt");
                 for (t of x) {
@@ -5760,9 +5773,14 @@ getId('relicReward').style.display = 'none';
                 getId('statusContainer').style.display = 'block';
                 if(getId("seed").value) {
                     rng = parseFloat("0." + getId("seed").value.split("").map(x=>x.charCodeAt(0)).join(""));
+                    rngWasRandom = false;
                     rngLists = {}; // clear the lists so they don't initialize as '0.123456789'
                 } else {
-                    rng = Math.random();
+                    let chars = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890";
+                    let seed = choice(chars)+choice(chars)+choice(chars)+choice(chars)+choice(chars);
+                    getId("seed").value = seed;
+                    rng = parseFloat("0." + seed.split("").map(x=>x.charCodeAt(0)).join(""));
+                    rngWasRandom = true;
                     rngLists = {}; // clear the lists so they don't initialize as '0.123456789'
                 }
                 mapGen();
@@ -5793,6 +5811,14 @@ getId('relicReward').style.display = 'none';
                 crCost = 75;
                 hasPaused = false;
                 beginGame();
+                if(rngWasRandom) {
+                    let chars = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890";
+                    let seed = choice(chars)+choice(chars)+choice(chars)+choice(chars)+choice(chars);
+                    getId("seed").value = seed;
+                    rng = parseFloat("0." + seed.split("").map(x=>x.charCodeAt(0)).join(""));
+                    rngWasRandom = true;
+                    rngLists = {}; // clear the lists so they don't initialize as '0.123456789'
+                }
             }
             window.setInterval(updateStatLine, 47);
         </script>
