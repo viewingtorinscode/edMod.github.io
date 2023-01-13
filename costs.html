@@ -409,7 +409,7 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.6.1";
+            let currentVersion = "v4.6.2";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
@@ -988,7 +988,7 @@ if(multiChoice.includes(num)) {
                             for(let i=0; i<hasBuff("Hex"); i++) {discardPile.push(statusCards["Dazed"]());}
                         }
                     }
-                    if(deck.map(x=>x.number).includes(this.number) && relics.map(x=>x.name).includes("Buckler")) {
+                    if(deck.map(x=>x.number).includes(this.number) && !this.name.includes("+") && relics.map(x=>x.name).includes("Buckler")) {
                         upgradeCard(deck.filter(x=>x.number==this.number)[0]);
                         relics = relics.filter(x=>x.name!="Buckler");
                     }
@@ -1096,8 +1096,8 @@ if(multiChoice.includes(num)) {
                     finalAmt -= this.hasBuff("Minus Strength");
                     if(this.hasBuff("Weak")) {finalAmt = Math.round(finalAmt * 0.75);}
                     let ub = finalAmt - hasBuff("Block");
-                    if(ub > 0) {ifRelic("Tungsten Rod", function(){finalAmt--;})}
                     if(ub > 0 && ub <= 5 && actuallyDeal) {ifRelic("Torii", function(){finalAmt = 1;})}
+                    if(ub > 0) {ifRelic("Tungsten Rod", function(){finalAmt--;})}
                     if(hasBuff("Intangible")) {finalAmt = 1;}
                     if(hasBuff("Buffer") && ub > 0 && actuallyDeal) {finalAmt = 0; loseBuff("Buffer", 1);}
                     return finalAmt;
@@ -1116,6 +1116,7 @@ if(multiChoice.includes(num)) {
                     let dealt = Math.max(0, finalAmt - hasBuff("Block"));
                     hp -= dealt;
                     loseBuff("Block", finalAmt);
+                    if(hasBuff("Thorns") && procThorns) {dealDamage(this, hasBuff("Thorns")); updateHtml();}
                     
                     if(dealt > 0) {
                         if(stats.timesLostHp == 0) {ifRelic("Centennial Puzzle", function(){drawCard(3)})}
@@ -1128,7 +1129,6 @@ if(multiChoice.includes(num)) {
                             }
                         }
                         addStatus("Wound", this.hasBuff("Painful Stabs"));
-                        if(hasBuff("Thorns") && procThorns) {dealDamage(this, hasBuff("Thorns")); updateHtml();}
                         loseBuff("Plated Armor", 1);
                         let red = Math.min(0.7, dealt * 0.02 + 0.24);
                         let i = 0;
@@ -1189,8 +1189,8 @@ if(multiChoice.includes(num)) {
             function calcYourDamage(enemy, amt, shiv=false, strike=false, actuallyDeal=false) {
                 if(amt == 0) return 0;
                 let finalAmt = amt;
-                if(shiv) {finalAmt += hasBuff("Accuracy"); ifRelic("Wrist Blade", function(){finalAmt += 6;});}
-                if(strike) {ifRelic("Strike Dummy", function(){finalAmt += 3;})}
+                if(shiv) {finalAmt += hasBuff("Accuracy"); ifRelic("Wrist Blade", function(){finalAmt += 6;}, [], false);}
+                if(strike) {ifRelic("Strike Dummy", function(){finalAmt += 3;}, [], false)}
                 if(enemy.hasBuff("Vulnerable")) {finalAmt = Math.round(finalAmt * 1.5);}
                 finalAmt *= 1 + 0.1*enemy.hasBuff("Slow");
                 if(enemy.hasBuff("Flight")) {finalAmt = Math.round(finalAmt*0.5); if(actuallyDeal){
@@ -1204,7 +1204,7 @@ if(multiChoice.includes(num)) {
                 }
                 if(finalAmt > 0) {
                     finalAmt += hasBuff("Strength") + hasBuff("Vigor");
-                    ifRelic("Red Skull", function(){if(hp<=0.5*maxHp){finalAmt += 3;}});
+                    ifRelic("Red Skull", function(){if(hp<=0.5*maxHp){finalAmt += 3;}}, [], false);
                     finalAmt -= hasBuff("Minus Strength");
                     finalAmt += Math.floor(target.hasBuff("Mark") * hasBuff("Precision") / 5);
                     if(finalAmt < 5 && relics.map(x=>x.name).includes("The Boot")) {finalAmt = 5;}
@@ -1217,18 +1217,18 @@ if(multiChoice.includes(num)) {
             function calcYourOOCDamage(amt, shiv=false, strike=false) {
                 if(amt == 0) return 0;
                 let finalAmt = amt;
-                if(shiv) {ifRelic("Wrist Blade", function(){finalAmt += 6;});}
-                if(strike) {ifRelic("Strike Dummy", function(){finalAmt += 3;})}
+                if(shiv) {ifRelic("Wrist Blade", function(){finalAmt += 6;}, [], false);}
+                if(strike) {ifRelic("Strike Dummy", function(){finalAmt += 3;}, [], false)}
                 if(finalAmt > 0) {
-                    ifRelic("Vajra", function(){finalAmt++;});
-                    ifRelic("Red Skull", function(){if(hp<=0.5*maxHp){finalAmt += 3;}});
+                    ifRelic("Vajra", function(){finalAmt++;}, [], false);
+                    ifRelic("Red Skull", function(){if(hp<=0.5*maxHp){finalAmt += 3;}}, [], false);
                     if(finalAmt < 5 && relics.map(x=>x.name).includes("The Boot")) {finalAmt = 5;}
                 }
                 return finalAmt;
             }
             function calcYourOOCBlock(amt) {
                 let finalAmt = amt;
-                ifRelic("Oddly Smooth Stone", function(){finalAmt++;});
+                ifRelic("Oddly Smooth Stone", function(){finalAmt++;}, [], false);
                 return finalAmt;
             }
             function calcYourBlock(amt) {
@@ -1278,7 +1278,7 @@ if(multiChoice.includes(num)) {
                         while(int == enemy.intent) {int = choiceR("combat", enemy.attacks);}
                         enemy.intent = int;
                     }
-                    if(enemy.name == "Lagavulin") {
+                    if(enemy.name == "Lagavulin" && enemy.hasBuff("Metallicize")) {
                         enemy.intent = enemy.attacks[3];
                         enemy.gainBuff("Stunned", 1);
                         enemy.loseBuff("Metallicize");
@@ -2314,9 +2314,9 @@ getId("woogleButton").onclick = function() {showMap();}
             //
             let alpha = () => new Card("Alpha", 1, "Skill", "Shuffle a Beta into your draw pile. Exhaust.", function(enemy){
                 drawPile.push(
-                    new Card("Beta", 1, "Skill", "Shuffle an Omega into your draw pile. Exhaust.", function(enemy){
+                    new Card("Beta", 2, "Skill", "Shuffle an Omega into your draw pile. Exhaust.", function(enemy){
                         drawPile.push(
-                            new Card("Omega", 0, "Power", "At the end of your turn, deal [DAM50] damage to ALL enemies.", function(enemy){gainBuff("Omega", 50);}, ["exhausted"])
+                            new Card("Omega", 3, "Power", "At the end of your turn, deal [DAM50] damage to ALL enemies.", function(enemy){gainBuff("Omega", 50);}, ["exhausted"])
                         );
                     }, ["exhausted"])
                 );
@@ -2846,9 +2846,9 @@ getId("woogleButton").onclick = function() {showMap();}
                 gainBuff("Vigor", 8);
             }), "Alpha": () => new Card("Alpha+", 1, "Skill", "Innate. Shuffle a Beta into your draw pile. Exhaust.", function(enemy){
                 drawPile.push(
-                    new Card("Beta", 1, "Skill", "Shuffle an Omega into your draw pile. Exhaust.", function(enemy){
+                    new Card("Beta", 2, "Skill", "Shuffle an Omega into your draw pile. Exhaust.", function(enemy){
                         drawPile.push(
-                            new Card("Omega", 0, "Power", "At the end of your turn, deal [DAM50] damage to ALL enemies.", function(enemy){gainBuff("Omega", 50);}, ["exhausted"])
+                            new Card("Omega", 3, "Power", "At the end of your turn, deal [DAM50] damage to ALL enemies.", function(enemy){gainBuff("Omega", 50);}, ["exhausted"])
                         );
                     }, ["exhausted"])
                 );
@@ -3111,31 +3111,33 @@ getId("woogleButton").onclick = function() {showMap();}
             }
             let possibleCards = [];
             
-            let ifRelic = function(rel, func, args=[]) {
+            let ifRelic = function(rel, func, args=[], doImg=true) {
                 try{
                 let foundIt = false;
                 for(let r of relics) {
                     if(r.name == rel) {
                         foundIt = true;
                         func(...args);
-                        let ind = relics.indexOf(r);
-                        let relicImg = document.createElement("img");
-                        relicImg.src = "StS/"+rel.replaceAll(" ","").replaceAll("’","")+".png";
-                        relicImg.style.width = "100px";
-                        relicImg.style.height = "100px";
-                        relicImg.style.position = "absolute";
-                        relicImg.style.left = (12 * getId("statusLineB4").textContent.length + 12 + 40 * ind) + "px";
-                        relicImg.style.top = "-25px";
-                        let elemId = Math.random().toString();
-                        relicImg.id = elemId;
-                        document.body.appendChild(relicImg);
-                        let red = 1;
-                        let i = 0;
-                        while(red > 0) {
-                            setTimeout(function(r){getId(elemId).style.opacity = r;}, i * 10, red);
-                            i++;
-                            red -= 0.009;
-                            if(red < 0) {setTimeout(function(){getId(elemId).remove();}, i * 10);}
+                        if(doImg) {
+                            let ind = relics.indexOf(r);
+                            let relicImg = document.createElement("img");
+                            relicImg.src = "StS/"+rel.replaceAll(" ","").replaceAll("’","")+".png";
+                            relicImg.style.width = "100px";
+                            relicImg.style.height = "100px";
+                            relicImg.style.position = "absolute";
+                            relicImg.style.left = (12 * getId("statusLineB4").textContent.length + 12 + 40 * ind) + "px";
+                            relicImg.style.top = "-25px";
+                            let elemId = Math.random().toString();
+                            relicImg.id = elemId;
+                            document.body.appendChild(relicImg);
+                            let red = 1;
+                            let i = 0;
+                            while(red > 0) {
+                                setTimeout(function(r){getId(elemId).style.opacity = r;}, i * 10, red);
+                                i++;
+                                red -= 0.009;
+                                if(red < 0) {setTimeout(function(){getId(elemId).remove();}, i * 10);}
+                            }
                         }
                     }
                 }
@@ -5289,7 +5291,7 @@ getId("woogleButton").onclick = function() {showMap();}
                         for(let x of e.buffs.filter(x=>x.name!="Block")) {
                             let buffStuff = "";
                             if(["Block", "Vulnerable", "Weak", "Strength", "Dexterity", "Thorns", "Ritual", "Frail", "Minus Strength", "Minus Dexterity", "Metallicize", "Regen", "Dexterity Down", "Artifact", "Buffer", "Poison", "Enrage", "Mark", "Talk to the Hand", "Barricade", "Flight", "Time Warp", "Angry", "Plated Armor", "Curl Up", "Stunned", "Lifelink", "Painful Stabs", "Shifting", "Fading", "Strength Up", "Malleable", "Constricting", "Reactive", "Thievery", "Spore Cloud", "Slow", "Healer", "Unawakened", "Stunned", "Split", "Phasing"].includes(x.name)) {
-                                buffStuff += "<img src='StS/"+x.name.toLowerCase().replaceAll(" ","_")+".png'>";
+                                buffStuff += "<img src='StS/"+(x.name=="Stunned"?"intent-":"")+x.name.toLowerCase().replaceAll(" ","_")+".png'>";
                             } else {
                                 buffStuff += x.name+" ";
                             }
