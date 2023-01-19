@@ -4,9 +4,13 @@
         <title>Media Literacy &amp; Dystopian Lit Circles - Google Slides</title>
         <!--<link rel="shortcut icon" href="./StS/intent-attack.png">-->
         <link rel="shortcut icon" href="https://ssl.gstatic.com/docs/presentations/images/favicon5.ico">
-        <style>
+        <style id="fontCss">
             html, input, button {
                 font-family: monospace;
+            }
+        </style>
+        <style>
+            html, input, button {
                 color: white;
             }
             html, input {background: #222;}
@@ -318,6 +322,9 @@ Themes:
 
 Seed: <input id="seed"> (leave blank for a random seed)
 
+Monospace font: <input type="checkbox" id="useMono" checked> <button onclick="updateFont();">Update</button>
+Use emojis: <input type="checkbox" id="useEmojis" checked>
+
 Credits (in order of importance):
 * MegaCrit
 * ToasterOven<span style="color: #aaa">#????</span>
@@ -409,7 +416,15 @@ Credits (in order of importance):
             newFun();
             window.setInterval(newFun, 800);
             
-            let currentVersion = "v4.6.2";
+            function updateFont() {
+                if(getId("useMono").checked) {
+                    getId("fontCss").innerHTML = "html, input, button {font-family: monospace}";
+                } else {
+                    getId("fontCss").innerHTML = "html, input, button {font-family: serif}";
+                }
+            }
+            
+            let currentVersion = "v4.6.3";
             getId("version").innerHTML = "Clone of Slay the Spire "+currentVersion+" ~ checking for updates";
             let myRequest = new Request("https://api.github.com/repos/wooga123/wooga123.github.io/branches/main");
             function fetchIt() {
@@ -1212,7 +1227,7 @@ if(multiChoice.includes(num)) {
                 if(hasBuff("Weak")) {finalAmt = Math.round(finalAmt * 0.75);}
                 if(enemy.name == "Darkling") {finalAmt = Math.min(finalAmt, enemy.hp - 1);}
                 if(enemy.hasBuff("Phasing") && turn % 2 == 0) {finalAmt = 1;}
-                return finalAmt;
+                return Math.round(finalAmt);
             }
             function calcYourOOCDamage(amt, shiv=false, strike=false) {
                 if(amt == 0) return 0;
@@ -1333,7 +1348,6 @@ if(multiChoice.includes(num)) {
                             map.push(["","","👺","",""]);
                         }
                     } else if(actNum == 3) {
-                        actNum = 0;
                         timerRunning = false; updateStatLine(); music.win.play(); announceMusic("A Return To Order");
                         // get the formatted deck
                         d=deck.map(x=>x.name);o={};for(let i of d){if(Object.keys(o).includes(i)){o[i]++;}else{o[i]=1;}}t=[];for(let i of Object.keys(o).sort()){t.push([i,o[i]]);}T=t.map(x=>x[1]+"x "+x[0]).join("\n");
@@ -1341,6 +1355,7 @@ if(multiChoice.includes(num)) {
                         // because relics and act start at 1, floor starts at ???, deck starts at 10 and gold starts at 99, subtract some pts
                         let score = Math.round(floor*2 + relics.length*4 + actNum*10 + deck.length*1 + gold*0.04 - 29.96) * 5;
                         showPopup("<b>=== you won! :D ===</b>\n- the seed was '"+getId("seed").value+"' ("+(rngWasRandom?"randomized":"set")+" seed)\n- your final deck was:\n"+T+"\n- your score: "+score);
+                        actNum = 0;
                         return;
                     }
                 }
@@ -1359,7 +1374,10 @@ if(multiChoice.includes(num)) {
                         let nodeElem = document.createElement("td");
                         if(map[floor][node] != "") {
                             let nodeButton = document.createElement("button");
-                            nodeButton.innerHTML = map[floor][node]+"<span class='txt'>"+
+                            let emoji = map[floor][node];
+                            let emojiToText = {"💀":"enemy", "😈":"elite", "🏕️":"rest&nbsp;", "❓":"event", "💲":"shop&nbsp;"};
+                            nodeButton.innerHTML = (getId("useEmojis").checked?map[floor][node]:(emojiToText[emoji]||"BOSS&nbsp;"))+
+                                "<span class='txt'>"+
                                 (map[floor][node]=="💀" ? "Fight some monsters. Get gold, a card and maybe a potion if you win." : 
                                   (map[floor][node]=="😈" ? "Fight a strong monster. Get gold, a rare card, a relic, and maybe a potion if you win." : 
                                     (map[floor][node]=="🏕️" ? "Rest and heal some HP or upgrade a card." : 
@@ -1370,7 +1388,7 @@ if(multiChoice.includes(num)) {
                             if(floor-1 == mapY && Math.abs(node-mapX) <= 1) {
                                 nodeButton.setAttribute("onclick", `gotoMap(${floor}, ${node});`);
                             } else if(floor == mapY && node == mapX) {
-                                nodeButton.innerHTML = "🙂";
+                                nodeButton.innerHTML = (getId("useEmojis").checked?"🙂":"&nbsp;you&nbsp;");
                             } else {
                                 nodeButton.setAttribute("class", "nonbutton notbig");
                             }
