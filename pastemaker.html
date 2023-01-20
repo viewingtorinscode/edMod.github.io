@@ -1,0 +1,176 @@
+<html id="html" class="light">
+    <head>
+        <title>wooga123's S&amp;D Paste Maker</title>
+        <style>
+            html.dark {
+                color: white;
+                background: black;
+            }
+            html.dark button, html.dark input {
+                color: white;
+                background: #444;
+            }
+            h2 {
+                display: inline;
+            }
+            .wrapper {
+                padding: 10px;
+            }
+            .heroitem {
+                width: 120px;
+            }
+            #mode {
+                position: absolute;
+                left: 90%;
+                top: 10px;
+            }
+            
+            #enemies {background: #f77;}
+            html.dark #enemies {background: #700;}
+            #basic {background: #ff7;}
+            html.dark #basic {background: #770;}
+            #heroes {background: #77f;}
+            html.dark #heroes {background: #007;}
+        </style>
+    </head>
+    <body>
+        <h1>wooga123's S&amp;D Paste Maker</h1>
+        
+        <button id="mode" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+        
+        <div id="basic" class="wrapper">
+            <h2>Basics</h2><br/>
+            <input id="floor" placeholder="Floor Number (1-20)"><br/>
+            <input id="version" placeholder="Version Number"><br/>
+        </div>
+        <br/>
+        
+        <div id="enemies" class="wrapper">
+            <h2>Enemies</h2> <button onclick="addEnemy()">+</button>
+            <div id="enemyInput">
+                <input id="enemy_0" placeholder="Enemy Name"><br/>
+            </div>
+        </div>
+        <br/>
+        
+        <div id="heroes" class="wrapper">
+            <h2>Heroes</h2> <button onclick="addHero()">+</button>
+            <div id="heroInput">
+                <div id="herowrap_0"><input id="hero_0" placeholder="Hero Name"> Died:<input id="died_0" type="checkbox"> <button onclick="addItem(0)">+</button> <span id="items_0"><input class="heroitem" id="heroitem_0_0" placeholder="Item Name"></span></div>
+            </div>
+        </div>
+        <br/>
+        
+        <button onclick="makePaste()">Make Paste</button>
+        <pre id="finalPaste"></pre>
+        <script>
+            let darkMode = false;
+            function toggleDarkMode() {
+                if(darkMode) {
+                    darkMode = false;
+                    document.getElementById("html").classList.remove("dark");
+                    document.getElementById("html").classList.add("light");
+                } else {
+                    darkMode = true;
+                    document.getElementById("html").classList.remove("light");
+                    document.getElementById("html").classList.add("dark");
+                }
+            }
+            
+            let numEnemies = 1;
+            function addEnemy() {
+                let monsters = [];
+                for(let i=0; i<numEnemies; i++) {
+                    monsters.push(document.getElementById("enemy_" + i).value);
+                }
+                document.getElementById("enemyInput").innerHTML += "<input id='enemy_" + numEnemies + "' placeholder='Enemy Name'><br/>";
+                for(let i=0; i<numEnemies; i++) {
+                    document.getElementById("enemy_" + i).value = monsters[i];
+                }
+                numEnemies++;
+            }
+            
+            let numHeroes = 1;
+            let heroesItems = [1];
+            function addHero() {
+                let heroes = [];
+                for(let i=0; i<numHeroes; i++) {
+                    heroes.push([
+                        document.getElementById("hero_" + i).value,
+                        document.getElementById("died_" + i).checked
+                    ]);
+                    for(let j=0; j<heroesItems[i]; j++) {
+                        heroes[i].push(document.getElementById("heroitem_" + i + "_" + j).value);
+                    }
+                }
+                document.getElementById("heroInput").innerHTML += "<div id='herowrap_" + numHeroes + "'><input id='hero_" + numHeroes + "' placeholder='Hero Name'> Died:<input id='died_" + numHeroes + "' type='checkbox'> <span id='items_" + numHeroes + "'><button onclick='addItem(" + numHeroes + ")'>+</button> <input class='heroitem' id='heroitem_" + numHeroes + "_0' placeholder='Item Name'></span></div>";
+                for(let i=0; i<numHeroes; i++) {
+                    let h = heroes[i];
+                    document.getElementById("hero_" + i).value = h[0];
+                    if(h[1]) {document.getElementById("died_" + i).checked = true;}
+                    for(let j=0; j<heroesItems[i]; j++) {
+                        document.getElementById("heroitem_" + i + "_" + j).value = h[j + 2];
+                    }
+                }
+                numHeroes++;
+                heroesItems.push(1);
+            }
+            function addItem(heroNum) {
+                let items = [];
+                for(let i=0; i<heroesItems[heroNum]; i++) {
+                    items.push(document.getElementById("heroitem_" + heroNum + "_" + i).value);
+                }
+                document.getElementById("items_" + heroNum).innerHTML += "<input class='heroitem' id='heroitem_" + heroNum + "_" + heroesItems[heroNum] + "' placeholder='Item Name'>";
+                for(let i=0; i<heroesItems[heroNum]; i++) {
+                    document.getElementById("heroitem_" + heroNum + "_" + i).value = items[i];
+                }
+                (heroesItems[heroNum])++;
+            }
+            
+            function makePaste() {
+                let heroes = [];
+                for(let i=0; i<numHeroes; i++) {
+                    heroes.push({
+                        name: document.getElementById("hero_" + i).value,
+                        died: (document.getElementById("died_" + i).checked ? "~D" : ""),
+                        items: []
+                    });
+                    for(let j=0; j<heroesItems[i]; j++) {
+                        heroes[i].items.push("~" + document.getElementById("heroitem_" + i + "_" + j).value.replaceAll(" ", "×"));
+                    }
+                }
+                heroes = heroes.map(x => x.name + x.died + x.items.filter(y=>y.length>1).join(""));
+                
+                let monsters = [];
+                for(let i=0; i<numEnemies; i++) {
+                    monsters.push(document.getElementById("enemy_" + i).value.replaceAll(" ", "×"));
+                }
+                for(let i of monsters) {
+                    if(i.slice(0, 5).toLowerCase() == "jinx-") {
+                        let jinxCodes = ["The jinx code","3m","ss","nb","bp","ds","md","s","sd","sg","hw","f","ml"];
+                        let ext = i.slice(5);
+                        monsters[monsters.indexOf(i)] = i.slice(0, 5) + ((jinxCodes.indexOf(ext) + 1 || 6) - 2);
+                    }
+                }
+                
+                let finalPaste = `
+{
+    v: ${(parseInt(document.getElementById("version").value) || 1) - 1},
+    d:{
+        n: ${document.getElementById("floor").value},
+        p:{
+            h:[ ${heroes.filter(x=>x.length).join(",")} ],
+            e:[]
+        },
+        m:[],
+        l:{m:[ ${monsters.filter(x=>x.length).join(",")} ]}
+    },
+    s:51525523,
+    p:["2{}", 3]
+}
+                `;
+                document.getElementById("finalPaste").innerHTML = finalPaste.replaceAll(" ", "").replaceAll("×", " ").replaceAll("\n", "");
+            }
+        </script>
+    </body>
+</html>
