@@ -1,10 +1,10 @@
 <html id="html" class="light">
     <head>
-        <title>wooga123's S&amp;D Paste Maker</title>
+        <title>S&amp;D Paste Maker</title>
         <style>
             html.dark {
                 color: white;
-                background: black;
+                background: #222;
             }
             html.dark button, html.dark input {
                 color: white;
@@ -16,39 +16,53 @@
             .wrapper {
                 padding: 10px;
             }
-            .heroitem {
+            .heroitem, .positioning, .side, .offer {
                 width: 120px;
+            }
+            .targeting {
+                width: 30px;
             }
             #mode {
                 position: absolute;
                 left: 90%;
                 top: 10px;
             }
+            #rerolls {
+                margin: 10px;
+            }
             
-            #enemies {background: #f77;}
-            html.dark #enemies {background: #700;}
-            #basic {background: #ff7;}
-            html.dark #basic {background: #770;}
+            #basic, #shops {background: #ff7;}
+            html.dark #basic, html.dark #shops {background: #770;}
+            #enemies, #challenges {background: #f77;}
+            html.dark #enemies, html.dark #challenges {background: #700;}
             #heroes {background: #77f;}
             html.dark #heroes {background: #007;}
+            #modifiers {background: #f7f;}
+            html.dark #modifiers {background: #707;}
+            #actions, #classrerolls {background: #7f7;}
+            html.dark #actions, html.dark #classrerolls {background: #070;}
+            #spells {background: #7ff;}
+            html.dark #spells {background: #077;}
         </style>
     </head>
     <body>
-        <h1>wooga123's S&amp;D Paste Maker</h1>
+        <h1>wooga123's totally untested S&amp;D Paste Maker</h1>
         
         <button id="mode" onclick="toggleDarkMode()">Toggle Dark Mode</button>
         
+        <h2>Basics</h2><br/>
         <div id="basic" class="wrapper">
-            <h2>Basics</h2><br/>
+            <h2>Info</h2><br/>
             <input id="floor" placeholder="Floor Number (1-20)"><br/>
             <input id="version" placeholder="Version Number"><br/>
+            <input id="title" placeholder="Paste Title"><br/>
         </div>
         <br/>
         
         <div id="enemies" class="wrapper">
-            <h2>Enemies</h2> <button onclick="addEnemy()">+</button>
+            <h2>Monsters</h2> <button onclick="addEnemy()">+</button>
             <div id="enemyInput">
-                <input id="enemy_0" placeholder="Enemy Name"><br/>
+                <input id="enemy_0" placeholder="Enemy Name"> <input id="eside_0" class="side" placeholder="Side (0-5) (Optional)"><br/>
             </div>
         </div>
         <br/>
@@ -56,13 +70,86 @@
         <div id="heroes" class="wrapper">
             <h2>Heroes</h2> <button onclick="addHero()">+</button>
             <div id="heroInput">
-                <div id="herowrap_0"><input id="hero_0" placeholder="Hero Name"> Died:<input id="died_0" type="checkbox"> <button onclick="addItem(0)">+</button> <span id="items_0"><input class="heroitem" id="heroitem_0_0" placeholder="Item Name"></span></div>
+                <div id="herowrap_0"><input id="hero_0" placeholder="Hero Name"> Died:<input id="died_0" type="checkbox"> <input id="hside_0" class="side" placeholder="Side (0-5) (Optional)"> <button onclick="addItem(0)">+</button> <span id="items_0"><input class="heroitem" id="heroitem_0_0" placeholder="Item Name"></span></div>
             </div>
         </div>
         <br/>
         
-        <button onclick="makePaste()">Make Paste</button>
+        <div id="modifiers" class="wrapper">
+            <h2>Modifiers</h2> <button onclick="addModifier()">+</button>
+            <div id="modifierInput">
+                <input id="modifier_0" placeholder="Modifier Name"><br/>
+            </div>
+        </div>
+        <br/>
+        
+        <h2>Combat</h2><br/>
+        <input id="rerolls" placeholder="Remaining Rerolls"><br/>
+        <div id="actions" class="wrapper">
+            <h2>Dice Used</h2> <button onclick="addDice()">+</button>
+            <div id="actionInput">
+                <input id="party_0" placeholder="Party (1=Hero, 2=Monster)">
+                <input id="pos_0" class="positioning" placeholder="Position (1=Top)">
+                Target: <input id="target_0" class="targeting" placeholder="X">th <button id="type_0" onclick="setTarget(0)">Hero</button>
+                <input id="side_0" class="side" placeholder="Side (0-5)">
+                Cantrip:<input id="cantrip_0" type="checkbox"><br/>
+            </div>
+        </div>
+        <br/>
+        
+        <div id="spells" class="wrapper">
+            <h2>Spells</h2> <button onclick="addSpell()">+</button>
+            <div id="spellInput">
+                <input id="spos_0" class="positioning" placeholder="Position (1=Left)">
+                Target: <input id="starget_0" class="targeting" placeholder="X">th <button id="stype_0" onclick="setSTarget(0)">Hero</button>
+                <br/>
+            </div>
+        </div>
+        <br/>
+        
+        <h2>Events</h2><br/>
+        <div id="shops" class="wrapper">
+            <h2>Shops</h2> <button onclick="addShop()">+</button>
+            <div id="shopInput">
+                <div id="shopwrap_0">
+                    <button id="shop_0" onclick="setShop(0)">Number</button> <input id="shopamt_0" placeholder="Total Amount" class="offer">
+                    <button onclick="addOffer(0)">+</button>
+                    <div id="offers_0">
+                        <div>
+                            <button id="shoptype_0_0" onclick="setShopType(0, 0)">Item</button>
+                            <input class="offer" id="offer_0_0" placeholder="Offer Name">
+                            <input class="offer" id="value_0_0" placeholder="Offer Value">
+                        </div><div>
+                            <button id="shoptype_0_1" onclick="setShopType(0, 1)">Item</button>
+                            <input class="offer" id="offer_0_1" placeholder="Offer Name">
+                            <input class="offer" id="value_0_1" placeholder="Offer Value">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <br/>
+        
+        <div id="challenges" class="wrapper">
+            <h2>Challenges</h2> <button onclick="addChallenge()">+</button>
+            <div id="challengeInput">
+                <div id="chalwrap_0">
+                    <button onclick="addMon(0)">+</button> <span id="mons_0"><input id="xtramon_0_0" placeholder="Extra Monster"></span><br/>
+                    <button onclick="addReward(0)">+</button> <span id="its_0"><input id="reward_0_0" placeholder="Item Reward"></span>
+                </div>
+            </div>
+        </div>
+        <br/>
+        
+        <div id="classrerolls" class="wrapper">
+            <h2>Class Rerolls</h2> <button onclick="addCR()">+</button>
+            <div id="CRInput">
+                <input id="cr_0" placeholder="Hero (1=Top)"><br/>
+            </div>
+        </div>
+        
         <pre id="finalPaste"></pre>
+        <button onclick="makePaste()">Make Paste</button>
         <script>
             let darkMode = false;
             function toggleDarkMode() {
@@ -81,11 +168,12 @@
             function addEnemy() {
                 let monsters = [];
                 for(let i=0; i<numEnemies; i++) {
-                    monsters.push(document.getElementById("enemy_" + i).value);
+                    monsters.push([document.getElementById("enemy_" + i).value, document.getElementById("eside_" + i).value]);
                 }
-                document.getElementById("enemyInput").innerHTML += "<input id='enemy_" + numEnemies + "' placeholder='Enemy Name'><br/>";
+                document.getElementById("enemyInput").innerHTML += "<input id='enemy_" + numEnemies + "' placeholder='Enemy Name'> <input id='eside_" + numEnemies + "' class='side' placeholder='Side (0-5) (Optional)'><br/>";
                 for(let i=0; i<numEnemies; i++) {
-                    document.getElementById("enemy_" + i).value = monsters[i];
+                    document.getElementById("enemy_" + i).value = monsters[i][0];
+                    document.getElementById("eside_" + i).value = monsters[i][1];
                 }
                 numEnemies++;
             }
@@ -97,19 +185,21 @@
                 for(let i=0; i<numHeroes; i++) {
                     heroes.push([
                         document.getElementById("hero_" + i).value,
+                        document.getElementById("hside_" + i).value,
                         document.getElementById("died_" + i).checked
                     ]);
                     for(let j=0; j<heroesItems[i]; j++) {
                         heroes[i].push(document.getElementById("heroitem_" + i + "_" + j).value);
                     }
                 }
-                document.getElementById("heroInput").innerHTML += "<div id='herowrap_" + numHeroes + "'><input id='hero_" + numHeroes + "' placeholder='Hero Name'> Died:<input id='died_" + numHeroes + "' type='checkbox'> <span id='items_" + numHeroes + "'><button onclick='addItem(" + numHeroes + ")'>+</button> <input class='heroitem' id='heroitem_" + numHeroes + "_0' placeholder='Item Name'></span></div>";
+                document.getElementById("heroInput").innerHTML += "<div id='herowrap_" + numHeroes + "'><input id='hero_" + numHeroes + "' placeholder='Hero Name'> Died:<input id='died_" + numHeroes + "' type='checkbox'> <input id='hside_" + numHeroes + "' class='side' placeholder='Side (0-5) (Optional)'> <span id='items_" + numHeroes + "'><button onclick='addItem(" + numHeroes + ")'>+</button> <input class='heroitem' id='heroitem_" + numHeroes + "_0' placeholder='Item Name'></span></div>";
                 for(let i=0; i<numHeroes; i++) {
                     let h = heroes[i];
                     document.getElementById("hero_" + i).value = h[0];
-                    if(h[1]) {document.getElementById("died_" + i).checked = true;}
+                    document.getElementById("hside_" + i).value = h[1];
+                    if(h[2]) {document.getElementById("died_" + i).checked = true;}
                     for(let j=0; j<heroesItems[i]; j++) {
-                        document.getElementById("heroitem_" + i + "_" + j).value = h[j + 2];
+                        document.getElementById("heroitem_" + i + "_" + j).value = h[j + 3];
                     }
                 }
                 numHeroes++;
@@ -127,7 +217,247 @@
                 (heroesItems[heroNum])++;
             }
             
+            let numMods = 1;
+            function addModifier() {
+                let mods = [];
+                for(let i=0; i<numMods; i++) {
+                    mods.push(document.getElementById("modifier_" + i).value);
+                }
+                document.getElementById("modifierInput").innerHTML += "<input id='modifier_" + numMods + "' placeholder='Modifier Name'><br/>";
+                for(let i=0; i<numMods; i++) {
+                    document.getElementById("modifier_" + i).value = mods[i];
+                }
+                numMods++;
+            }
+            
+            let numDice = 1;
+            let isHeroTgt = [true];
+            function addDice() {
+                let dice = [];
+                for(let i=0; i<numDice; i++) {
+                    dice.push([
+                        document.getElementById("party_" + i).value,
+                        document.getElementById("pos_" + i).value,
+                        document.getElementById("target_" + i).value,
+                        document.getElementById("side_" + i).value,
+                        document.getElementById("cantrip_" + i).checked
+                    ]);
+                }
+                document.getElementById("actionInput").innerHTML += "<input id='party_" + numDice + "' placeholder='Party (1=Hero, 2=Monster)'> <input id='pos_" + numDice + "' class='positioning' placeholder='Position (1=Top)'> Target: <input id='target_" + numDice + "' class='targeting' placeholder='X'>th <button id='type_" + numDice + "' onclick='setTarget(" + numDice + ")'>Hero</button> <input id='side_" + numDice + "' class='side' placeholder='Side (0-5)'> Cantrip:<input id='cantrip_" + numDice + "' type='checkbox'><br/>";
+                for(let i=0; i<numDice; i++) {
+                    let m = dice[i];
+                    document.getElementById("party_" + i).value = m[0];
+                    document.getElementById("pos_" + i).value = m[1];
+                    document.getElementById("target_" + i).value = m[2];
+                    document.getElementById("side_" + i).value = m[3];
+                    if(m[4]) {document.getElementById("cantrip_" + i).checked = true;}
+                }
+                numDice++;
+                isHeroTgt.push(true);
+            }
+            function setTarget(diceNum) {
+                if(isHeroTgt[diceNum]) {
+                    document.getElementById("type_" + diceNum).textContent = "Monster";
+                    isHeroTgt[diceNum] = false;
+                } else {
+                    document.getElementById("type_" + diceNum).textContent = "Hero";
+                    isHeroTgt[diceNum] = true;
+                }
+            }
+            
+            let numSpells = 1;
+            let SisHeroTgt = [true];
+            function addSpell() {
+                let dice = [];
+                for(let i=0; i<numDice; i++) {
+                    dice.push([
+                        document.getElementById("pos_" + i).value,
+                        document.getElementById("target_" + i).value
+                    ]);
+                }
+                document.getElementById("spellInput").innerHTML += "<input id='pos_" + numDice + "' class='positioning' placeholder='Position (1=Left)'> Target: <input id='target_" + numDice + "' class='targeting' placeholder='X'>th <button id='type_" + numDice + "' onclick='setTarget(" + numDice + ")'>Hero</button><br/>";
+                for(let i=0; i<numDice; i++) {
+                    let m = dice[i];
+                    document.getElementById("pos_" + i).value = m[0];
+                    document.getElementById("target_" + i).value = m[1];
+                }
+                numDice++;
+                isHeroTgt.push(true);
+            }
+            function setSTarget(diceNum) {
+                if(SisHeroTgt[diceNum]) {
+                    document.getElementById("stype_" + diceNum).textContent = "Monster";
+                    SisHeroTgt[diceNum] = false;
+                } else {
+                    document.getElementById("stype_" + diceNum).textContent = "Hero";
+                    SisHeroTgt[diceNum] = true;
+                }
+            }
+            
+            let numShops = 1;
+            let shopsOffers = [2];
+            let kindOfShop = [0];
+            let shopType = [[0, 0]];
+            function addShop() {
+                let shops = [];
+                for(let i=0; i<numShops; i++) {
+                    shops.push([
+                        document.getElementById("shopamt_" + i).value
+                    ]);
+                    for(let j=0; j<shopsOffers[i]; j++) {
+                        shops[i].push([
+                            document.getElementById("offer_" + i + "_" + j).value,
+                            document.getElementById("value_" + i + "_" + j).value
+                        ]);
+                    }
+                }
+                document.getElementById("shopInput").innerHTML += `
+<button id="shop_${numShops}" onclick="setShop(${numShops})">Number</button>
+<input id="shopamt_${numShops}" placeholder="Total Amount" class="offer">
+<button onclick="addOffer(${numShops})">+</button>
+<div id="offers_${numShops}">
+    <div>
+        <button id="shoptype_${numShops}_0" onclick="setShopType(${numShops}, 0)">Item</button>
+        <input class="offer" id="offer_${numShops}_0" placeholder="Offer Name">
+        <input class="offer" id="value_${numShops}_0" placeholder="Offer Value">
+    </div><div>
+        <button id="shoptype_${numShops}_1" onclick="setShopType(${numShops}, 1)">Item</button>
+        <input class="offer" id="offer_${numShops}_1" placeholder="Offer Name">
+        <input class="offer" id="value_${numShops}_1" placeholder="Offer Value">
+    </div>
+</div>`;
+                for(let i=0; i<numShops; i++) {
+                    let s = shops[i];
+                    document.getElementById("shopamt_" + i).value = s[0];
+                    for(let j=0; j<shopsOffers[i]; j++) {
+                        document.getElementById("offer_" + i + "_" + j).value = s[j + 1][0];
+                        document.getElementById("value_" + i + "_" + j).value = s[j + 1][1];
+                    }
+                }
+                numShops++;
+                shopsOffers.push(2);
+                kindOfShop.push(0);
+                shopType.push([0, 0]);
+            }
+            function addOffer(shopNum) {
+                let items = [];
+                for(let i=0; i<shopsOffers[shopNum]; i++) {
+                    items.push([
+                        document.getElementById("offer_" + shopNum + "_" + i).value,
+                        document.getElementById("value_" + shopNum + "_" + i).value
+                    ]);
+                }
+                let n = shopsOffers[shopNum];
+                document.getElementById("offers_" + shopNum).innerHTML += "<div><button id='shoptype_" + shopNum + "_" + n + "' onclick='setShopType(" + shopNum + ", " + n + ")'>Item</button> <input class='offer' id='offer_" + shopNum + "_" + n + "' placeholder='Offer Name'> <input class='offer' id='value_" + shopNum + "_" + n + "' placeholder='Offer Value'></div>";
+                for(let i=0; i<shopsOffers[shopNum]; i++) {
+                    document.getElementById("offer_" + shopNum + "_" + i).value = items[i][0];
+                    document.getElementById("value_" + shopNum + "_" + i).value = items[i][1];
+                }
+                (shopsOffers[shopNum])++;
+                shopType[shopNum].push(0);
+            }
+            function setShop(diceNum) {
+                if(kindOfShop[diceNum] == 0) {
+                    document.getElementById("shop_" + diceNum).textContent = "PointBuy";
+                    kindOfShop[diceNum] = 1;
+                } else if(kindOfShop[diceNum] == 1) {
+                    document.getElementById("shop_" + diceNum).textContent = "Optional";
+                    kindOfShop[diceNum] = 2;
+                } else {
+                    document.getElementById("shop_" + diceNum).textContent = "Number";
+                    kindOfShop[diceNum] = 0;
+                }
+            }
+            function setShopType(shopNum, itemNum) {
+                if(shopType[shopNum][itemNum] == 0) {
+                    document.getElementById("shoptype_" + shopNum + "_" + itemNum).textContent = "Modifier";
+                    shopType[shopNum][itemNum] = 1;
+                } else if(shopType[shopNum][itemNum] == 1) {
+                    document.getElementById("shoptype_" + shopNum + "_" + itemNum).textContent = "Levelup";
+                    shopType[shopNum][itemNum] = 2;
+                } else {
+                    document.getElementById("shoptype_" + shopNum + "_" + itemNum).textContent = "Item";
+                    shopType[shopNum][itemNum] = 0;
+                }
+            }
+            
+            let numChallenges = 1;
+            let challengesItems = [1];
+            let challengesMons = [1];
+            function addChallenge() {
+                let challenges = [];
+                for(let i=0; i<numChallenges; i++) {
+                    challenges.push({its: [], mons: []});
+                    for(let j=0; j<challengesMons[i]; j++) {
+                        challenges[i].mons.push(document.getElementById("xtramon_" + i + "_" + j).value);
+                    }
+                    for(let j=0; j<challengesItems[i]; j++) {
+                        challenges[i].its.push(document.getElementById("reward_" + i + "_" + j).value);
+                    }
+                }
+                document.getElementById("challengeInput").innerHTML += "<div id='chalwrap_" + numChallenges + "'><button onclick='addMon(" + numChallenges + ")'>+</button> <span id='mons_" + numChallenges + "'><input id='xtramon_" + numChallenges + "_0' placeholder='Extra Monster'></span><br/><button onclick='addReward(" + numChallenges + ")'>+</button> <span id='its_" + numChallenges + "'><input id='reward_" + numChallenges + "_0' placeholder='Item Reward'></span></div>";
+                for(let i=0; i<numChallenges; i++) {
+                    let h = challenges[i];
+                    for(let j=0; j<challengesMons[i]; j++) {
+                        document.getElementById("xtramon_" + i + "_" + j).value = h.mons[j];
+                    }
+                    for(let j=0; j<challengesItems[i]; j++) {
+                        document.getElementById("reward_" + i + "_" + j).value = h.its[j];
+                    }
+                }
+                numChallenges++;
+                challengesItems.push(1);
+                challengesMons.push(1);
+            }
+            function addMon(chalNum) {
+                let challenges = [];
+                for(let j=0; j<challengesMons[chalNum]; j++) {
+                    challenges.push(document.getElementById("xtramon_" + chalNum + "_" + j).value);
+                }
+                document.getElementById("mons_" + chalNum).innerHTML += "<input id='xtramon_" + chalNum + "_" + challengesMons[chalNum] + "' placeholder='Extra Monster'>";
+                for(let j=0; j<challengesMons[chalNum]; j++) {
+                    document.getElementById("xtramon_" + chalNum + "_" + j).value = challenges[j];
+                }
+                (challengesMons[chalNum])++;
+            }
+            function addReward(chalNum) {
+                let challenges = [];
+                for(let j=0; j<challengesItems[chalNum]; j++) {
+                    challenges.push(document.getElementById("reward_" + chalNum + "_" + j).value);
+                }
+                document.getElementById("its_" + chalNum).innerHTML += "<input id='reward_" + chalNum + "_" + challengesItems[chalNum] + "' placeholder='Item Reward'>";
+                for(let j=0; j<challengesItems[chalNum]; j++) {
+                    document.getElementById("reward_" + chalNum + "_" + j).value = challenges[j];
+                }
+                (challengesItems[chalNum])++;
+            }
+            
+            let numCRs = 1;
+            function addCR() {
+                let mods = [];
+                for(let i=0; i<numCRs; i++) {
+                    mods.push(document.getElementById("cr_" + i).value);
+                }
+                document.getElementById("CRInput").innerHTML += "<input id='cr_" + numCRs + "' placeholder='Hero (1=Top)'><br/>";
+                for(let i=0; i<numCRs; i++) {
+                    document.getElementById("cr_" + i).value = mods[i];
+                }
+                numCRs++;
+            }
+            
             function makePaste() {
+                let monsters = [];
+                for(let i=0; i<numEnemies; i++) {
+                    monsters.push(document.getElementById("enemy_" + i).value.replaceAll(" ", "×"));
+                }
+                for(let i of monsters) {
+                    if(i.slice(0, 5).toLowerCase() == "jinx-") {
+                        let jinxCodes = ["The jinx code","3m","ss","nb","bp","ds","md","s","sd","sg","hw","f","ml"];
+                        let ext = i.slice(5);
+                        monsters[monsters.indexOf(i)] = i.slice(0, 5) + ((jinxCodes.indexOf(ext) + 1 || 6) - 2);
+                    }
+                }
+                
                 let heroes = [];
                 for(let i=0; i<numHeroes; i++) {
                     heroes.push({
@@ -141,35 +471,151 @@
                 }
                 heroes = heroes.map(x => x.name + x.died + x.items.filter(y=>y.length>1).join(""));
                 
-                let monsters = [];
-                for(let i=0; i<numEnemies; i++) {
-                    monsters.push(document.getElementById("enemy_" + i).value.replaceAll(" ", "×"));
+                let mods = [];
+                for(let i=0; i<numMods; i++) {
+                    mods.push(document.getElementById("modifier_" + i).value.replaceAll(" ", "×"));
                 }
-                for(let i of monsters) {
-                    if(i.slice(0, 5).toLowerCase() == "jinx-") {
-                        let jinxCodes = ["The jinx code","3m","ss","nb","bp","ds","md","s","sd","sg","hw","f","ml"];
-                        let ext = i.slice(5);
-                        monsters[monsters.indexOf(i)] = i.slice(0, 5) + ((jinxCodes.indexOf(ext) + 1 || 6) - 2);
+                for(let i of mods) {
+                    if(i.slice(0, 4).toLowerCase() == "add×") {
+                        if(i.slice(-8).toLowerCase() == "×(11-20)") {
+                            mods[mods.indexOf(i)] = '"Add×[purple]' + i.slice(4, -8) + '[cu]×(11-20)"';
+                        } else {
+                            mods[mods.indexOf(i)] = '"Add×[purple]' + i.slice(4) + '[cu]"';
+                        }
                     }
                 }
                 
+                let combat = [];
+                for(let i=0; i<numDice; i++) {
+                    if(!document.getElementById("party_" + i).value.length) {continue;}
+                    combat.push({
+                        party: document.getElementById("party_" + i).value,
+                        pos: document.getElementById("pos_" + i).value,
+                        target: document.getElementById("target_" + i).value,
+                        side: document.getElementById("side_" + i).value,
+                        cantrip: document.getElementById("cantrip_" + i).checked,
+                        hero: isHeroTgt[i]
+                    });
+                }
+                combat = combat.map(x => x.party + (parseInt(x.pos) + (x.party == 1 ? numEnemies : 0) - 1) +
+                                    (parseInt(x.target) + (x.hero ? numEnemies : 0) - 1) + x.side + (x.cantrip ? "c" : ""));
+                
+                let spells = [];
+                for(let i=0; i<numSpells; i++) {
+                    if(!document.getElementById("spos_" + i).value.length) {continue;}
+                    spells.push({
+                        pos: document.getElementById("spos_" + i).value,
+                        target: document.getElementById("starget_" + i).value,
+                        hero: SisHeroTgt[i]
+                    });
+                }
+                spells = spells.map(x => "3" + x.pos + (parseInt(x.target) + (x.hero ? numEnemies : 0) - 1));
+                
+                let rerolls = (document.getElementById("rerolls").value || "X");
+                let sides = [];
+                for(let i=0; i<numEnemies; i++) {
+                    if(document.getElementById("eside_" + i).value.length) {sides.push(document.getElementById("eside_" + i).value)}
+                    else {sides.push(Math.floor(Math.random()*6))}
+                }
+                for(let i=0; i<numHeroes; i++) {
+                    if(document.getElementById("hside_" + i).value.length) {sides.push(document.getElementById("hside_" + i).value)}
+                    else {sides.push(Math.floor(Math.random()*6))}
+                }
+                
+                let shops = [];
+                for(let i=0; i<numShops; i++) {
+                    shops.push({
+                        type: document.getElementById("shop_" + i).textContent,
+                        value: document.getElementById("shopamt_" + i).value,
+                        offers: []
+                    });
+                    for(let j=0; j<shopsOffers[i]; j++) {
+                        shops[i].offers.push({
+                            type: document.getElementById("shoptype_" + i + "_" + j).textContent,
+                            name: document.getElementById("offer_" + i + "_" + j).value,
+                            value: document.getElementById("value_" + i + "_" + j).value
+                        });
+                    }
+                }
+                for(let s of shops) {
+                    let mods = s.offers.filter(x => x.type == "Modifier");
+                    for(let m of mods) {
+                        let i = m.name;
+                        if(i.slice(0, 4).toLowerCase() == "add ") {
+                            if(i.slice(-8).toLowerCase() == " (11-20)") {
+                                s.offers[s.offers.indexOf(m)].name = '"Add×[purple]' + i.slice(4, -8) + '[cu]×(11-20)"';
+                            } else {
+                                s.offers[s.offers.indexOf(m)].name = '"Add×[purple]' + i.slice(4) + '[cu]"';
+                            }
+                        }
+                    }
+                }
+                shops = shops.filter(x => x.value.length).map(x => '\\"!{ct:{cs:' + x.type + ',v:' + x.value + '},cs:[' + x.offers.map(
+                    y => "{am:" + y.value + ",cd:[{t:" + y.type + ",n:" + y.name.replaceAll(" ", "×") + "}]}").join(",") + ']}\\"');
+                
+                let challenges = [];
+                for(let i=0; i<numChallenges; i++) {
+                    challenges.push({
+                        mons: [],
+                        items: []
+                    });
+                    for(let j=0; j<challengesMons[i]; j++) {
+                        if(document.getElementById("xtramon_" + i + "_" + j).value.length) {
+                            challenges[i].mons.push(document.getElementById("xtramon_" + i + "_" + j).value);
+                        }
+                    }
+                    for(let j=0; j<challengesItems[i]; j++) {
+                        if(document.getElementById("reward_" + i + "_" + j).value.length) {
+                            challenges[i].items.push(document.getElementById("reward_" + i + "_" + j).value);
+                        }
+                    }
+                }
+                challenges = challenges.filter(x => x.mons.length).map(x => '\\"9{\\\\\\"reward\\\\\\":{\\\\\\"itemStrings\\\\\\":[' + 
+                    x.items.map(y => '\\\\\\"' + y.replaceAll(" ", "×") + '\\\\\\"').join(",") +
+                    ']},\\\\\\"type\\\\\\":{\\\\\\"extraMonsters\\\\\\":[' + x.mons.map(
+                    y => '\\\\\\"' + y.replaceAll(" ", "×") + '\\\\\\"').join(",") + ']}}\\"');
+                
+                let crs = [];
+                for(let i=0; i<numCRs; i++) {
+                    crs.push("5" + parseInt(document.getElementById("cr_" + i).value) - 1);
+                }
+                crs = crs.filter(x => (x ? true : false));
+                
                 let finalPaste = `
 {
-    v: ${(parseInt(document.getElementById("version").value) || 1) - 1},
+    v:${document.getElementById("version").value || "201r"},
+    c:[
+        ${combat.join(",")} ${(spells.length && combat.length) ? "," : ""} ${spells.join(",")}
+        ${(combat.length || spells.length) ? ",4" : ""}
+    ],
+    ${rerolls == "X" ? "" : "p:[1"+rerolls+"],"}
     d:{
-        n: ${document.getElementById("floor").value},
+        n:${document.getElementById("floor").value || 1},
         p:{
             h:[ ${heroes.filter(x=>x.length).join(",")} ],
             e:[]
         },
-        m:[],
+        m:[ ${mods.filter(x=>x.length).join(",")} ],
         l:{m:[ ${monsters.filter(x=>x.length).join(",")} ]}
     },
-    s:51525523,
-    p:["2{}", 3]
+    s:${sides.join("")},
+    p:[
+        ${document.getElementById("title").value.length ?
+                    '"4' + document.getElementById("title").value.replaceAll(" ", "×").replaceAll('"', "’") + '",' : ""}
+        "2{
+            ${shops.length||challenges.length||crs.length ? "ps:[" + shops.join(",") + (shops.length&&challenges.length ? "," : "") +
+                    challenges.join(",") + (shops.length&&challenges.length ? "," : "") + crs.join(",") + "]" : ""}
+        }",
+        3
+    ]
 }
                 `;
                 document.getElementById("finalPaste").innerHTML = finalPaste.replaceAll(" ", "").replaceAll("×", " ").replaceAll("\n", "");
+                
+                // Warn if required elements are missing
+                if(!heroes.filter(x=>x.length).length || !monsters.filter(x=>x.length).length) {
+                    alert("Warning: At least one hero, at least one monster, and the floor number should be specified.");
+                }
             }
         </script>
     </body>
