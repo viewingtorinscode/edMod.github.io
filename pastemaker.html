@@ -37,12 +37,14 @@
             html.dark #enemies, html.dark #challenges {background: #700;}
             #heroes {background: #77f;}
             html.dark #heroes {background: #007;}
-            #modifiers {background: #f7f;}
-            html.dark #modifiers {background: #707;}
+            #modifiers, #swapheroes {background: #f7f;}
+            html.dark #modifiers, html.dark #swapheroes {background: #707;}
             #actions, #classrerolls {background: #7f7;}
             html.dark #actions, html.dark #classrerolls {background: #070;}
             #spells {background: #7ff;}
             html.dark #spells {background: #077;}
+            #anvils {background: #777;}
+            html.dark #anvils {background: #777;}
         </style>
     </head>
     <body>
@@ -62,7 +64,7 @@
         <div id="enemies" class="wrapper">
             <h2>Monsters</h2> <button onclick="addEnemy()">+</button>
             <div id="enemyInput">
-                <input id="enemy_0" placeholder="Enemy Name"> <input id="eside_0" class="side" placeholder="Side (0-5) (Optional)"><br/>
+                <input id="enemy_0" placeholder="Enemy Name"> <input id="eside_0" placeholder="Side (optional, old petrify order)"><br/>
             </div>
         </div>
         <br/>
@@ -70,7 +72,7 @@
         <div id="heroes" class="wrapper">
             <h2>Heroes</h2> <button onclick="addHero()">+</button>
             <div id="heroInput">
-                <div id="herowrap_0"><input id="hero_0" placeholder="Hero Name"> Died:<input id="died_0" type="checkbox"> <input id="hside_0" class="side" placeholder="Side (0-5) (Optional)"> <button onclick="addItem(0)">+</button> <span id="items_0"><input class="heroitem" id="heroitem_0_0" placeholder="Item Name"></span></div>
+                <div id="herowrap_0"><input id="hero_0" placeholder="Hero Name"> Died:<input id="died_0" type="checkbox"> <input id="hside_0" placeholder="Side (optional, old petrify order)"> <button onclick="addItem(0)">+</button> <span id="items_0"><input class="heroitem" id="heroitem_0_0" placeholder="Item Name"></span></div>
             </div>
         </div>
         <br/>
@@ -91,7 +93,7 @@
                 <input id="party_0" placeholder="Party (1=Hero, 2=Monster)">
                 <input id="pos_0" class="positioning" placeholder="Position (1=Top)">
                 Target: <input id="target_0" class="targeting" placeholder="X">th <button id="type_0" onclick="setTarget(0)">Hero</button>
-                <input id="side_0" class="side" placeholder="Side (0-5)">
+                <input id="side_0" placeholder="Side (old petrify order)">
                 Cantrip:<input id="cantrip_0" type="checkbox"><br/>
             </div>
         </div>
@@ -147,6 +149,22 @@
                 <input id="cr_0" placeholder="Hero (1=Top)"><br/>
             </div>
         </div>
+        <br/>
+        
+        <div id="swapheroes" class="wrapper">
+            <h2>Swap Heroes</h2> <button onclick="addSH()">+</button>
+            <div id="SHInput">
+                Swap <input id="sha_0" placeholder="Hero (1=Top)"> with <input id="shb_0" placeholder="Hero (1=Top)"><br/>
+            </div>
+        </div>
+        <br/>
+        
+        <div id="anvils" class="wrapper">
+            <h2>Anvils</h2> <button onclick="addAnvil()">+</button>
+            <div id="anvilInput"><!--Start with no stuff, because there aren't any inputs--></div>
+        </div>
+        
+        <p>* Old petrify order means 0=Top, 1=Bottom, 2=Left, 3=Middle-Right, 4=Middle-Left, 5=Rightmost</p>
         
         <pre id="finalPaste"></pre>
         <button onclick="makePaste()">Make Paste</button>
@@ -170,7 +188,7 @@
                 for(let i=0; i<numEnemies; i++) {
                     monsters.push([document.getElementById("enemy_" + i).value, document.getElementById("eside_" + i).value]);
                 }
-                document.getElementById("enemyInput").innerHTML += "<input id='enemy_" + numEnemies + "' placeholder='Enemy Name'> <input id='eside_" + numEnemies + "' class='side' placeholder='Side (0-5) (Optional)'><br/>";
+                document.getElementById("enemyInput").innerHTML += "<input id='enemy_" + numEnemies + "' placeholder='Enemy Name'> <input id='eside_" + numEnemies + "' placeholder='Side (optional, old petrify order)'><br/>";
                 for(let i=0; i<numEnemies; i++) {
                     document.getElementById("enemy_" + i).value = monsters[i][0];
                     document.getElementById("eside_" + i).value = monsters[i][1];
@@ -192,7 +210,7 @@
                         heroes[i].push(document.getElementById("heroitem_" + i + "_" + j).value);
                     }
                 }
-                document.getElementById("heroInput").innerHTML += "<div id='herowrap_" + numHeroes + "'><input id='hero_" + numHeroes + "' placeholder='Hero Name'> Died:<input id='died_" + numHeroes + "' type='checkbox'> <input id='hside_" + numHeroes + "' class='side' placeholder='Side (0-5) (Optional)'> <span id='items_" + numHeroes + "'><button onclick='addItem(" + numHeroes + ")'>+</button> <input class='heroitem' id='heroitem_" + numHeroes + "_0' placeholder='Item Name'></span></div>";
+                document.getElementById("heroInput").innerHTML += "<div id='herowrap_" + numHeroes + "'><input id='hero_" + numHeroes + "' placeholder='Hero Name'> Died:<input id='died_" + numHeroes + "' type='checkbox'> <input id='hside_" + numHeroes + "' placeholder='Side (optional, old petrify order)'> <span id='items_" + numHeroes + "'><button onclick='addItem(" + numHeroes + ")'>+</button> <input class='heroitem' id='heroitem_" + numHeroes + "_0' placeholder='Item Name'></span></div>";
                 for(let i=0; i<numHeroes; i++) {
                     let h = heroes[i];
                     document.getElementById("hero_" + i).value = h[0];
@@ -243,7 +261,7 @@
                         document.getElementById("cantrip_" + i).checked
                     ]);
                 }
-                document.getElementById("actionInput").innerHTML += "<input id='party_" + numDice + "' placeholder='Party (1=Hero, 2=Monster)'> <input id='pos_" + numDice + "' class='positioning' placeholder='Position (1=Top)'> Target: <input id='target_" + numDice + "' class='targeting' placeholder='X'>th <button id='type_" + numDice + "' onclick='setTarget(" + numDice + ")'>Hero</button> <input id='side_" + numDice + "' class='side' placeholder='Side (0-5)'> Cantrip:<input id='cantrip_" + numDice + "' type='checkbox'><br/>";
+                document.getElementById("actionInput").innerHTML += "<input id='party_" + numDice + "' placeholder='Party (1=Hero, 2=Monster)'> <input id='pos_" + numDice + "' class='positioning' placeholder='Position (1=Top)'> Target: <input id='target_" + numDice + "' class='targeting' placeholder='X'>th <button id='type_" + numDice + "' onclick='setTarget(" + numDice + ")'>Hero</button> <input id='side_" + numDice + "' placeholder='Side (old petrify order)'> Cantrip:<input id='cantrip_" + numDice + "' type='checkbox'><br/>";
                 for(let i=0; i<numDice; i++) {
                     let m = dice[i];
                     document.getElementById("party_" + i).value = m[0];
@@ -445,6 +463,38 @@
                 numCRs++;
             }
             
+            let numSHs = 1;
+            function addSH() {
+                let mods = [];
+                for(let i=0; i<numSHs; i++) {
+                    mods.push(document.getElementById("sha_" + i).value);
+                    mods.push(document.getElementById("shb_" + i).value);
+                }
+                document.getElementById("SHInput").innerHTML += "Swap <input id='sha_" + numSHs + "' placeholder='Hero (1=Top)'> with <input id='shb_" + numSHs + "' placeholder='Hero (1=Top)'><br/>";
+                for(let i=0; i<numSHs; i++) {
+                    document.getElementById("sha_" + i).value = mods[2*i];
+                    document.getElementById("shb_" + i).value = mods[2*i+1];
+                }
+                numSHs++;
+            }
+            
+            let numAnvils = 0;
+            let anvilTypes = [0];
+            function addAnvil() {
+                document.getElementById("anvilInput").innerHTML += "Anvil Type: <button id='anviltype_" + numAnvils + "' onclick='setAnvilType(" + numAnvils + ")'>Combine All Tier 0-3 Items</button><br/>";
+                numAnvils++;
+                anvilTypes.push(0);
+            }
+            function setAnvilType(anvilNum) {
+                if(anvilTypes[anvilNum] == 0) {
+                    document.getElementById("anviltype_" + anvilNum).textContent = "Smash Second-Highest Tier Item";
+                    anvilTypes[anvilNum] = 1;
+                } else {
+                    document.getElementById("anviltype_" + anvilNum).textContent = "Combine All Tier 0-3 Items";
+                    anvilTypes[anvilNum] = 0;
+                }
+            }
+            
             function makePaste() {
                 let monsters = [];
                 for(let i=0; i<numEnemies; i++) {
@@ -550,8 +600,9 @@
                         }
                     }
                 }
-                shops = shops.filter(x => x.value.length).map(x => '\\"!{ct:{cs:' + x.type + ',v:' + x.value + '},cs:[' + x.offers.map(
-                    y => "{am:" + y.value + ",cd:[{t:" + y.type + ",n:" + y.name.replaceAll(" ", "×") + "}]}").join(",") + ']}\\"');
+                shops = shops.filter(x => x.value.length).map(x => '\\"!{cs:[' + x.offers.map(
+                    y => "{am:" + y.value + ",cd:[{t:" + y.type + ",n:" + y.name.replaceAll(" ", "×") + "}]}").join(",") + '],ct:{cs:' +
+                    x.type + ',v:' + x.value + '}}\\"');
                 
                 let challenges = [];
                 for(let i=0; i<numChallenges; i++) {
@@ -577,9 +628,21 @@
                 
                 let crs = [];
                 for(let i=0; i<numCRs; i++) {
-                    crs.push("5" + parseInt(document.getElementById("cr_" + i).value) - 1);
+                    crs.push("5" + (parseInt(document.getElementById("cr_" + i).value) - 1));
                 }
-                crs = crs.filter(x => (x ? true : false));
+                crs = crs.filter(x => (x.includes("NaN") ? false : true));
+                
+                let shs = [];
+                for(let i=0; i<numSHs; i++) {
+                    crs.push("8" + (parseInt(document.getElementById("sha_" + i).value) - 1) +
+                             (parseInt(document.getElementById("shb_" + i).value) - 1));
+                }
+                shs = shs.filter(x => (x.includes("NaN") ? false : true));
+                
+                let anvils = [];
+                for(let i=0; i<numAnvils; i++) {
+                    anvils.push(anvilTypes[i] ? '\\7SecondHighestToTierThrees\\' : '\\7ZeroToThreeToSingle\\');
+                }
                 
                 let finalPaste = `
 {
@@ -604,7 +667,9 @@
                     '"4' + document.getElementById("title").value.replaceAll(" ", "×").replaceAll('"', "’") + '",' : ""}
         "2{
             ${shops.length||challenges.length||crs.length ? "ps:[" + shops.join(",") + (shops.length&&challenges.length ? "," : "") +
-                    challenges.join(",") + (shops.length&&challenges.length ? "," : "") + crs.join(",") + "]" : ""}
+                    challenges.join(",") + (crs.length&&challenges.length ? "," : "") + crs.join(",") + 
+                    (crs.length&&shs.length ? "," : "") + shs.join(",") + (anvils.length&&shs.length ? "," : "") +
+                    anvils.join(",") + "]" : ""}
         }",
         3
     ]
