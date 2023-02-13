@@ -1,0 +1,181 @@
+<html>
+    <head>
+        <title>trash</title>
+        <!-- look at `a-bunch-of-junk.txt` for more info -->
+        <style>
+            html {
+                background: #112;
+                color: white;
+            }
+            .crab {
+                position: absolute;
+                transition: 1s;
+                width: 125px;
+                height: 175px;
+                background: darkblue;
+                border: 1px solid black;
+            }
+            #your-info {
+                position: absolute;
+                bottom: 30px;
+            }
+            #enemy-info {
+                position: absolute;
+                top: 30px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="your-info"></div>
+        <div id="your-hand"></div>
+        <div id="enemy-info"></div>
+        <div id="enemy-hand"></div>
+        <script>
+            function shuffle(array) {
+                let currentIndex = array.length, randomIndex;
+                while(currentIndex != 0) {
+                    randomIndex = Math.floor(Math.random() * currentIndex);
+                    currentIndex--;
+                    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+                }
+                return array;
+            }
+            const randChoice = a => a[Math.floor(Math.random()*a.length)];
+            const getId = x => document.getElementById(x);
+            // All cards are called crabs now because I said so
+            class Crab {
+                constructor(name, id, cost, desc, stats, effect) {
+                    this.name = name;
+                    this.uuid = Math.random();
+                    this.id = id;
+                    this.cost = cost;
+                    this.desc = desc;
+                    this.stats = stats;
+                    this.effect = effect;
+                }
+                play() {
+                    this.effect(this);
+                    getId("crab-"+this.uuid).style.bottom = "40%";
+                    yourHand.splice(yourHand.indexOf(this), 1);
+                    setTimeout(updateHtml, 500);
+                }
+            }
+            class Enemy {
+                constructor(name, id, hp, maxhp, ap, maxap, deck) {
+                    this.name = name;
+                    this.uuid = Math.random();
+                    this.id = id;
+                    this.ap = ap;
+                    this.maxap = maxap;
+                    this.pile = shuffle(deck.map(x=>crabFromData(x)));
+                    this.hand = [];
+                    for(let i=0; i<hp; i++) {
+                        this.hand.push(this.pile[0]);
+                        this.pile.splice(0, 1);
+                    }
+                    this.maxhp = maxhp;
+                }
+            }
+            const crabList = {
+                whack: ["powerful crab", "whack", 1, "deal !D! damage", {D: 1}, function(self) {damageEnemy(self.stats.D, self);}]
+            };
+            const crabFromData = c => new Crab(...c);
+            const enemyList = {
+                floober: ["fl00ber!!", "floober", 2, 5, 1, 3, [crabList.whack, crabList.whack, crabList.whack]]
+            };
+            const enemyFromData = c => new Enemy(...c);
+            let deck = [
+                crabFromData(crabList.whack),
+                crabFromData(crabList.whack),
+                crabFromData(crabList.whack),
+                crabFromData(crabList.whack),
+                crabFromData(crabList.whack),
+                crabFromData(crabList.whack)
+            ];
+            let yourHand = [], yourPile, actionPoints = 2;
+            let curEnemy; // will be filled later
+            function updateHtml() {
+                try{
+                let existingIds = Object.values(getId("your-hand").children).map(x=>x.id.slice(5));
+                for(let i of yourHand) {
+                    if(existingIds.includes(i.uuid.toString())) {
+                        getId("crab-" + i.uuid).style.left = (50 + 10 * yourHand.indexOf(i) - 5 * yourHand.length) + "%";
+                    } else {
+                        let n = document.createElement("div");
+                        n.id = "crab-" + i.uuid;
+                        n.onclick = function() {i.play()}
+                        n.classList.add("crab");
+                        getId("your-hand").appendChild(n);
+                        n.style.bottom = "10px";
+                        n.style.left = "110%";
+                        setTimeout(function() {
+                            n.style.left = (50 + 10 * yourHand.indexOf(i) - 5 * yourHand.length) + "%";
+                        }, 10);
+                    }
+                    getId("crab-" + i.uuid).innerHTML = "<b>" + i.name + "</b><br/>" + i.desc.replaceAll("!D!", i.stats.D);
+                    getId("your-info").innerHTML = "hit points: "+"🔴".repeat(yourHand.length)+"⭕".repeat(7-yourHand.length)+
+                        "<br/>action points: "+"⬛".repeat(actionPoints)+"🔲".repeat(3-actionPoints);
+                }
+                // get all the cards that AREN'T in the hand & delete them
+                for(let i of existingIds.filter(x=>!yourHand.map(y=>y.uuid.toString()).includes(x))) {
+                    getId("crab-" + i).style.left = "-10%";
+                    setTimeout(function() {
+                        getId("crab-" + i).remove();
+                    }, 1000);
+                }
+                // Now do the same thing with the enemy
+                existingIds = Object.values(getId("enemy-hand").children).map(x=>x.id.slice(5));
+                for(let i of curEnemy.hand) {
+                    if(existingIds.includes(i.uuid.toString())) {
+                        getId("crab-" + i.uuid).style.left = (50 + 10 * curEnemy.hand.indexOf(i) - 5 * curEnemy.hand.length) + "%";
+                    } else {
+                        let n = document.createElement("div");
+                        n.id = "crab-" + i.uuid;
+                        n.classList.add("crab");
+                        getId("enemy-hand").appendChild(n);
+                        n.style.top = "10px";
+                        n.style.left = "110%";
+                        setTimeout(function() {
+                            n.style.left = (50 + 10 * curEnemy.hand.indexOf(i) - 5 * curEnemy.hand.length) + "%";
+                        }, 10);
+                    }
+                    getId("crab-" + i.uuid).innerHTML = "";
+                    getId("enemy-info").innerHTML = "hit points: "+"🔴".repeat(curEnemy.hand.length)+
+                        "⭕".repeat(curEnemy.maxhp-curEnemy.hand.length)+
+                        "<br/>action points: "+"⬛".repeat(curEnemy.ap)+"🔲".repeat(curEnemy.maxap-curEnemy.ap);
+                }
+                // get all the cards that AREN'T in the ENEMY's hand & delete them
+                for(let i of existingIds.filter(x=>!curEnemy.hand.map(y=>y.uuid.toString()).includes(x))) {
+                    getId("crab-" + i).style.left = "-10%";
+                    setTimeout(function() {
+                        getId("crab-" + i).remove();
+                    }, 1000);
+                }
+                }catch(e){alert(e)}
+            }
+            function damageEnemy(amount, source) {
+                if(!amount) return;
+                //alert(source.name+" hit the enemy for "+amount+" damage.");
+                if(curEnemy.hand.length < amount) {
+                    alert("You win! The "+amount+" damage dealt by "+source.name+" is greater than the enemy's HP of "+curEnemy.hand.length);
+                } else {
+                    for(let x=0; x<amount; x++) {
+                        let c = Math.floor(Math.random() * curEnemy.hand.length);
+                        curEnemy.hand.splice(c, 1);
+                    }
+                }
+            }
+            function initBattle(enemy) {
+                curEnemy = enemyFromData(enemyList[enemy]);
+                yourPile = shuffle(deck.slice(0));
+                for(let i=0; i<4; i++) {
+                    yourHand.push(yourPile[0]);
+                    yourPile.splice(0, 1);
+                }
+                updateHtml();
+            }
+            alert("GO!");
+            initBattle("floober");
+        </script>
+    </body>
+</html>
