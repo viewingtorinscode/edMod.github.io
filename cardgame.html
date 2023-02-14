@@ -15,13 +15,36 @@
                 background: darkblue;
                 border: 1px solid black;
             }
-            #your-info {
+            #your-info, #enemy-info {
                 position: absolute;
+                z-index: 2;
+            }
+            #your-info {
                 bottom: 30px;
             }
             #enemy-info {
-                position: absolute;
                 top: 30px;
+            }
+            #cool-bar {
+                position: absolute;
+                width: 100%;
+                background: black;
+                font-size: 30px;
+                color: yellow;
+                text-align: center;
+                transition: 0.5s;
+            }
+            #end-turn {
+                position: absolute;
+                right: 10px;
+                top: 40%;
+                padding: 5px 20px 5px 20px;
+                color: yellow;
+                background: darkblue;
+                border: none;
+                border-radius: 10px;
+                font-size: 20px;
+                z-index: 2;
             }
         </style>
     </head>
@@ -30,6 +53,8 @@
         <div id="your-hand"></div>
         <div id="enemy-info"></div>
         <div id="enemy-hand"></div>
+        <div id="cool-bar" style="top: -10%;"></div>
+        <button id="end-turn" onclick="actionQueue.push({func: endTurn, time: 100, args: []});">End Turn</button>
         <script>
             function shuffle(array) {
                 let currentIndex = array.length, randomIndex;
@@ -42,6 +67,20 @@
             }
             const randChoice = a => a[Math.floor(Math.random()*a.length)];
             const getId = x => document.getElementById(x);
+            function addCircle(char) {
+                let circles = {"U": "", "X": "ⓧ", "0": "⓪", "1": "①", "2": "②", "3": "③", "4": "④", "5": "⑤"};
+                return "<b style='color: yellow'>"+circles[char]+"</b>";
+            }
+            let actionQueue = [];
+            let timeRemaining = 1;
+            function doQueue() {
+                if(!actionQueue.length) {timeRemaining = 9999; return;}
+                timeRemaining = Math.min(timeRemaining - 50, actionQueue[0].time);
+                if(timeRemaining <= 0) {
+                    actionQueue[0].func(...actionQueue[0].args); actionQueue.splice(0, 1); timeRemaining = 9999;
+                }
+            }
+            setInterval(doQueue, 50);
             // All cards are called crabs now because I said so
             class Crab {
                 constructor(name, id, cost, desc, stats, effect) {
@@ -52,48 +91,121 @@
                     this.desc = desc;
                     this.stats = stats;
                     this.effect = effect;
+                    this.revealed = true;
                 }
                 play() {
-                    this.effect(this);
-                    getId("crab-"+this.uuid).style.bottom = "40%";
-                    yourHand.splice(yourHand.indexOf(this), 1);
-                    setTimeout(updateHtml, 500);
+                    if(this.cost == "U") return; // can't play an unplayable crab
+                    if(!isPlayerTurn) return;
+                    if(actionPoints < this.cost) return;
+                    actionPoints -= this.cost;
+                    getId("crab-"+this.uuid).style.bottom = "30%";
+                    updateHtml();
+                    actionQueue.push({func: function(x) {
+                        yourHand.splice(yourHand.indexOf(x), 1);
+                        x.effect(x, "player");
+                        updateHtml();
+                    }, time: 1000, args: [this]});
+                }
+                enemyPlay() {
+                    if(this.cost == "U") return; // can't play an unplayable crab
+                    if(curEnemy.ap < this.cost) return;
+                    curEnemy.ap -= this.cost;
+                    getId("crab-"+this.uuid).style.top = "30%";
+                    updateHtml();
+                    actionQueue.push({func: function(x) {
+                        curEnemy.hand.splice(curEnemy.hand.indexOf(x), 1);
+                        x.effect(x, "enemy");
+                        updateHtml();
+                    }, time: 1000, args: [this]});
+                }
+                attack(amount, by) {
+                    if(by == "player") damageEnemy(amount, this);
+                    else damagePlayer(amount, this);
+                }
+                drawCrabs(amount, by) {
+                    if(by == "player") drawCrabs(amount);
+                    else curEnemy.drawCrabs(amount);
+                    updateHtml();
+                }
+                pushToHand(c, by) {
+                    if(by == "player" && yourHand.length == 7) return;
+                    if(by == "enemy" && curEnemy.hand.length == curEnemy.maxhp) return;
+                    if(by == "player") yourHand.push(crabFromData(c));
+                    else curEnemy.hand.push(crabFromData(c));
+                }
+                apply(what, amount, by) {
+                    if(by == "player") curEnemy.gain(what, amount);
+                    else gain(what, amount);
                 }
             }
             class Enemy {
-                constructor(name, id, hp, maxhp, ap, maxap, deck) {
+                constructor(name, id, hp, maxhp, buffs, deck) {
                     this.name = name;
                     this.uuid = Math.random();
                     this.id = id;
-                    this.ap = ap;
-                    this.maxap = maxap;
+                    this.ap = 0;
+                    this.maxap = 0;
                     this.pile = shuffle(deck.map(x=>crabFromData(x)));
+                    for(let i of this.pile) i.revealed = false;
                     this.hand = [];
-                    for(let i=0; i<hp; i++) {
-                        this.hand.push(this.pile[0]);
-                        this.pile.splice(0, 1);
-                    }
                     this.maxhp = maxhp;
+                    this.drawCrabs(hp);
+                    this.buffs = buffs;
+                }
+                drawCrabs(a=1) {
+                    for(let i=0; i<a; i++) {
+                        if(this.hand.length >= this.maxhp || !this.pile.length) return;
+                        this.hand.push(this.pile[0]); this.pile.splice(0, 1);
+                    }
                 }
             }
             const crabList = {
-                whack: ["powerful crab", "whack", 1, "deal !D! damage", {D: 1}, function(self) {damageEnemy(self.stats.D, self);}]
+                whack: ["strike", "whack", 1, "deal !D! damage", {D: 1}, function(self, tgt) {self.attack(self.stats.D, tgt)}],
+                healPot: ["healing potion", "healPot", 2, "draw !C! cards", {C: 3}, function(self, tgt) {self.drawCrabs(self.stats.C, tgt)}],
+                stab: ["stab", "stab", 1, "deal !D! damage, draw +!C! next turn", {D: 1, C: 1}, function(self, tgt) {
+                    self.attack(self.stats.D, tgt); nextTurnActions.push({
+                        func: function(s, t) {s.drawCrabs(s.stats.C, t)}, time: 800, args: [self, tgt], tgt: tgt
+                    });
+                }],
+                shieldsUp: ["shields up", "shieldsUp", 1, "add 2 shields to your hand. they get targeted by damage", {}, function(self, tgt) {
+                    self.pushToHand(["shield", "shield", "U", "targeted by damage", {p: 1}, function(s, t) {}], tgt);
+                    self.pushToHand(["shield", "shield", "U", "targeted by damage", {p: 1}, function(s, t) {}], tgt);
+                }],
+                oblivionOrb: ["oblivion orb", "oblivionOrb", 1, "enemy can't draw for 1 turn", {}, function(self, tgt) {
+                    self.apply("oblivion orb", 1, tgt);
+                }]
             };
             const crabFromData = c => new Crab(...c);
             const enemyList = {
-                floober: ["fl00ber!!", "floober", 2, 5, 1, 3, [crabList.whack, crabList.whack, crabList.whack]]
+                floober: ["Floober", "floober", 1, 5, [], [
+                    crabList.whack,
+                    crabList.stab,
+                    crabList.shieldsUp
+                ]]
             };
             const enemyFromData = c => new Enemy(...c);
             let deck = [
+                crabFromData(crabList.shieldsUp),
+                crabFromData(crabList.shieldsUp),
                 crabFromData(crabList.whack),
-                crabFromData(crabList.whack),
-                crabFromData(crabList.whack),
-                crabFromData(crabList.whack),
-                crabFromData(crabList.whack),
-                crabFromData(crabList.whack)
+                crabFromData(crabList.stab),
+                crabFromData(crabList.stab),
+                crabFromData(crabList.stab),
+                crabFromData(crabList.healPot),
+                crabFromData(crabList.healPot)
             ];
-            let yourHand = [], yourPile, actionPoints = 2;
+            let yourHand = [], yourPile, actionPoints = 0, actionMax = 0, isPlayerTurn = false;
+            let nextTurnActions = [];
+            function drawCrabs(a=1) {
+                for(let i=0; i<a; i++) {
+                    if(yourHand.length >= 7 || !yourPile.length) return;
+                    yourHand.push(yourPile[0]); yourPile.splice(0, 1);
+                }
+            }
             let curEnemy; // will be filled later
+            function gain(w, a) { // gain a buff
+                // TODO
+            }
             function updateHtml() {
                 try{
                 let existingIds = Object.values(getId("your-hand").children).map(x=>x.id.slice(5));
@@ -110,15 +222,15 @@
                         n.style.left = "110%";
                         setTimeout(function() {
                             n.style.left = (50 + 10 * yourHand.indexOf(i) - 5 * yourHand.length) + "%";
-                        }, 10);
+                        }, 100);
                     }
-                    getId("crab-" + i.uuid).innerHTML = "<b>" + i.name + "</b><br/>" + i.desc.replaceAll("!D!", i.stats.D);
-                    getId("your-info").innerHTML = "hit points: "+"🔴".repeat(yourHand.length)+"⭕".repeat(7-yourHand.length)+
-                        "<br/>action points: "+"⬛".repeat(actionPoints)+"🔲".repeat(3-actionPoints);
+                    getId("crab-" + i.uuid).innerHTML = addCircle(i.cost) + " <b>" + i.name + "</b><br/>" +
+                        i.desc.replaceAll("!D!", i.stats.D).replaceAll("!C!", i.stats.C);
+                    getId("your-info").innerHTML = "action points: "+"🔲".repeat(actionPoints)+"⬛".repeat(actionMax-actionPoints);
                 }
-                // get all the cards that AREN'T in the hand & delete them
+                // get all the crabs that AREN'T in the hand & delete them
                 for(let i of existingIds.filter(x=>!yourHand.map(y=>y.uuid.toString()).includes(x))) {
-                    getId("crab-" + i).style.left = "-10%";
+                    getId("crab-" + i).style.left = "-50%";
                     setTimeout(function() {
                         getId("crab-" + i).remove();
                     }, 1000);
@@ -137,42 +249,103 @@
                         n.style.left = "110%";
                         setTimeout(function() {
                             n.style.left = (50 + 10 * curEnemy.hand.indexOf(i) - 5 * curEnemy.hand.length) + "%";
-                        }, 10);
+                        }, 100);
                     }
-                    getId("crab-" + i.uuid).innerHTML = "";
-                    getId("enemy-info").innerHTML = "hit points: "+"🔴".repeat(curEnemy.hand.length)+
-                        "⭕".repeat(curEnemy.maxhp-curEnemy.hand.length)+
-                        "<br/>action points: "+"⬛".repeat(curEnemy.ap)+"🔲".repeat(curEnemy.maxap-curEnemy.ap);
+                    if(i.revealed) getId("crab-" + i.uuid).innerHTML = addCircle(i.cost) + " <b>" + i.name + "</b><br/>" +
+                        i.desc.replaceAll("!D!", i.stats.D).replaceAll("!C!", i.stats.C);
+                    else getId("crab-" + i.uuid).innerHTML = "";
+                    getId("enemy-info").innerHTML = "action points: "+"🔲".repeat(curEnemy.ap)+"⬛".repeat(curEnemy.maxap-curEnemy.ap);
                 }
-                // get all the cards that AREN'T in the ENEMY's hand & delete them
+                // get all the crabs that AREN'T in the ENEMY's hand & delete them
                 for(let i of existingIds.filter(x=>!curEnemy.hand.map(y=>y.uuid.toString()).includes(x))) {
-                    getId("crab-" + i).style.left = "-10%";
+                    getId("crab-" + i).style.left = "-50%";
                     setTimeout(function() {
                         getId("crab-" + i).remove();
                     }, 1000);
                 }
                 }catch(e){alert(e)}
             }
-            function damageEnemy(amount, source) {
+            function damageEnemy(amount, source) {try{
                 if(!amount) return;
-                //alert(source.name+" hit the enemy for "+amount+" damage.");
                 if(curEnemy.hand.length < amount) {
                     alert("You win! The "+amount+" damage dealt by "+source.name+" is greater than the enemy's HP of "+curEnemy.hand.length);
                 } else {
                     for(let x=0; x<amount; x++) {
+                        let maxP = Math.max(...curEnemy.hand.map(x=>(x.stats.p||-1)));
                         let c = Math.floor(Math.random() * curEnemy.hand.length);
+                        while((curEnemy.hand[c].stats.p || -1) < maxP) {
+                            c = Math.floor(Math.random() * curEnemy.hand.length);
+                        }
                         curEnemy.hand.splice(c, 1);
                     }
                 }
+            }catch(e){alert(e)}}
+            function damagePlayer(amount, source) {
+                if(!amount) return;
+                if(yourHand.length < amount) {
+                    alert("You lose! The "+amount+" damage dealt by "+source.name+" is greater than your HP of "+yourHand.length);
+                } else {
+                    for(let x=0; x<amount; x++) {
+                        let maxP = Math.max(...yourHand.map(x=>(x.stats.p||-1)));
+                        let c = Math.floor(Math.random() * yourHand.length);
+                        while((yourHand[c].stats.p || -1) < maxP) {
+                            c = Math.floor(Math.random() * yourHand.length);
+                        }
+                        yourHand.splice(c, 1);
+                    }
+                }
+            }
+            function playerTurn() {
+                actionQueue = [...actionQueue, ...nextTurnActions.filter(x=>x.tgt=="player")];
+                nextTurnActions = nextTurnActions.filter(x=>x.tgt=="enemy");
+                getId("cool-bar").innerHTML = "Player Turn!";
+                getId("cool-bar").style.top = "40%";
+                setTimeout(function() {
+                    getId("cool-bar").style.top = "-10%";
+                    isPlayerTurn = true;
+                }, 800);
+                drawCrabs(1);
+                if(actionMax < 5) actionMax++;
+                actionPoints = actionMax;
+                updateHtml();
+            }
+            function playEnemyCrab() {
+                if(!curEnemy.hand.length) {actionQueue.push({func: playerTurn, time: 500, args: []}); return false;}
+                let playable = curEnemy.hand.filter(x=>curEnemy.ap>=x.cost&&x.cost!="U");
+                if(!playable.length) {actionQueue.push({func: playerTurn, time: 500, args: []}); return false;}
+                let c = randChoice(playable);
+                c.revealed = true;
+                c.enemyPlay();
+                actionQueue.push({func: playEnemyCrab, time: 1000, args: []}); // continue to play crabs
+                return true;
+            }
+            function endTurn() {
+                if(!isPlayerTurn) return; // Can't end turn during enemy turn
+                isPlayerTurn = false;
+                actionQueue = [...actionQueue, ...nextTurnActions.filter(x=>x.tgt=="enemy")];
+                nextTurnActions = nextTurnActions.filter(x=>x.tgt=="player");
+                getId("cool-bar").innerHTML = curEnemy.name+"'s Turn!";
+                getId("cool-bar").style.top = "40%";
+                setTimeout(function() {
+                    getId("cool-bar").style.top = "-10%";
+                }, 800);
+                curEnemy.drawCrabs(1);
+                if(curEnemy.maxap < 5) curEnemy.maxap++;
+                curEnemy.ap = curEnemy.maxap;
+                updateHtml();
+                actionQueue.push({func: playEnemyCrab, time: 1000, args: []});
             }
             function initBattle(enemy) {
                 curEnemy = enemyFromData(enemyList[enemy]);
                 yourPile = shuffle(deck.slice(0));
-                for(let i=0; i<4; i++) {
-                    yourHand.push(yourPile[0]);
-                    yourPile.splice(0, 1);
-                }
+                drawCrabs(4);
                 updateHtml();
+                getId("cool-bar").innerHTML = "Combat Start! Opponent: "+curEnemy.name;
+                getId("cool-bar").style.top = "40%";
+                setTimeout(function() {
+                    getId("cool-bar").style.top = "-10%";
+                }, 1200);
+                setTimeout(playerTurn, 1500);
             }
             alert("GO!");
             initBattle("floober");
