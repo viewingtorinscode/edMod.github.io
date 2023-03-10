@@ -45,12 +45,12 @@
             window.onkeyup = function(e) { pressedKeys[e.keyCode] = false; }
             window.onkeydown = function(e) { pressedKeys[e.keyCode] = true; }
             let keybinds = {
-                left: 37, right: 39, jump: 38, dash: 40
+                left: 37, right: 39, jump: 38, dash: 90, lookUp: 38, lookDown: 40
             };
             let keynames = {
-                left: "ArrowLeft", right: "ArrowRight", jump: "ArrowUp", dash: "ArrowDown"
+                left: "ArrowLeft", right: "ArrowRight", jump: "ArrowUp", dash: "z", lookUp: "ArrowUp", lookDown: "ArrowDown"
             };
-            let charges = {dash: true};
+            let charges = {dash: true}, cooldowns = {dash: 0};
             let tempColor = [50, 150, 250], colorTime = 0, changedColor = false;
             let c; // this is important.
             let checkx = 70, checky = 550, started = false, prevt = 0, flagPos = [[1540, 0], [1930, 300]];
@@ -152,6 +152,7 @@
                         xpos = checkx; ypos = checky; xvel = 0; yvel = 0; started = false; if(cptime.length) btime = cptime[cptime.length - 1];
                     }
                     ypos-=3;
+                    for(let i of Object.keys(cooldowns)) cooldowns[i]--;
                     ////// RENDERING ///////////
                     c.clearRect(0, 0, 1200, 700);
                     let scrollX = (xpos < 600 || maxX < 1200 ? 0 : (xpos + 600 > maxX ? maxX - 1200 : xpos - 600));
@@ -197,9 +198,14 @@
                     if(k == keybinds.jump) {
                         if(grounded) {grounded = 0; yvel = -6;}
                         else if(wj) {wj = 0; yvel = -6; xvel = -4 * wd;}
-                    } else if(k == keybinds.dash && charges.dash) {
-                        charges.dash = false;
-                        xvel = (pressedKeys[keybinds.left] ? -1 : 1) * 6;
+                    } else if(k == keybinds.dash && charges.dash && cooldowns.dash <= 0) {
+                        charges.dash = false; cooldowns.dash = 0; //30;
+                        let d = (pressedKeys[keybinds.left] ? -1 : (pressedKeys[keybinds.right] ? 1 : 0));
+                        let e = (pressedKeys[keybinds.lookUp] ? -1 : (pressedKeys[keybinds.lookDown] ? 1 : 0));
+                        if(!d && !e) d = 1;
+                        // Check if the xvel and d have the same sign
+                        xvel = d * 6;// + (xvel * d > 0 ? xvel * 0.8 : 0);
+                        yvel = e * 6;
                         tempColor = [250, 150, 50];
                         changedColor = true;
                     } else if(k == 82) {
@@ -223,7 +229,8 @@
                     c.children[1].innerHTML = ""; // Clear the tables in preparation for the next step
                 }
                 let allKeys = Object.keys(keybinds).map(x=>[keybinds[x], keynames[x]]);
-                document.getElementById("kbody").innerHTML = "<tr><td colspan='2' id='tabletop'>Keybinds</td><td id='stop' onclick='hideKBScreen()'>x</td></tr>" + allKeys.map(x=>"<tr id='kb-" + x[0] + "'><td class='tableleft'>[" + x[1] + "]</td><td class='tableright'></td></tr>").join("");
+                let filtered = allKeys.filter((v, i)=>allKeys.map(x=>x[0]).indexOf(v[0])==i);
+                document.getElementById("kbody").innerHTML = "<tr><td colspan='2' id='tabletop'>Keybinds</td><td id='stop' onclick='hideKBScreen()'>x</td></tr>" + filtered.map(x=>"<tr id='kb-" + x[0] + "'><td class='tableleft'>[" + x[1] + "]</td><td class='tableright'></td></tr>").join("");
                 for(let k in keybinds) {
                     document.getElementById("kb-" + keybinds[k]).children[1].innerHTML += " <img class='im' src='icons/" + k + ".png' onclick='doImgClick(\"" + k + "\")'>";
                 }
