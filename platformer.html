@@ -1,0 +1,255 @@
+<html>
+    <head>
+        <title>Google Drive LTI</title>
+        <style>
+            #kbs {
+                position: absolute;
+                width: 60%;
+                height: 60%;
+                left: 20%;
+                top: 20%;
+                text-align: center;
+                border-radius: 10px;
+                padding: 5px;
+                border: 1px solid black;
+                background: white;
+            }
+            #tabletop {
+                background: darkorange;
+                height: 30%;
+                border-radius: 10px;
+                font-size: 20px;
+            }
+            #tabletop.kmode {
+                background: cyan;
+            }
+            .tableleft {
+                padding: 5px;
+                background: orange;
+                border-radius: 10px;
+                font-size: 16px;
+            }
+            .tableright {
+                width: 50%;
+            }
+            .im {
+                width: 50px;
+            }
+            #stop {
+                border-radius: 10px;
+                background: pink;
+            }
+        </style>
+        <script>
+            let pressedKeys = {};
+            window.onkeyup = function(e) { pressedKeys[e.keyCode] = false; }
+            window.onkeydown = function(e) { pressedKeys[e.keyCode] = true; }
+            let keybinds = {
+                left: 37, right: 39, jump: 38, dash: 40
+            };
+            let keynames = {
+                left: "ArrowLeft", right: "ArrowRight", jump: "ArrowUp", dash: "ArrowDown"
+            };
+            let charges = {dash: true};
+            let tempColor = [50, 150, 250], colorTime = 0, changedColor = false;
+            let c; // this is important.
+            let checkx = 70, checky = 550, started = false, prevt = 0, flagPos = [[1540, 0], [1930, 300]];
+            let xpos = 70, ypos = 550, xvel = 0, yvel = 0;
+            let grounded = 0, wj = 0, wd = 0, cptime = [], btime = 0;
+            let platforms = [
+                [0, -200, 20, 800, "basic"],
+                [0, 600, 800, 20, "basic"],
+                [230, 250, 550, 20, "ice"],
+                [780, 250, 10, 350, "ice"],
+                [790, 250, 10, 350, "bonk"],
+                [800, 250, 480, 20, "lava"],
+                [1170, 400, 100, 20, "ice"],
+                [1100, 530, 20, 10, "lava"],
+                [1100, 540, 10, 80, "basic"],
+                [1110, 540, 10, 80, "bonk"],
+                [1270, 400, 130, 20, "lava"],
+                [1400, 600, 150, 20, "basic"],
+                [1530, 0, 20, 600, "basic"],
+                [1400, 0, 20, 200, "lava"],
+                [1400, 200, 20, 220, "basic"],
+                [1550, 0, 200, 20, "basic"],
+                [1880, -100, 20, 450, "lava"],
+                [1650, 150, 250, 20, "lava"],
+                [1550, 300, 200, 20, "lava"],
+                [1550, 600, 100, 20, "ice"],
+                [2000, 600, 150, 20, "ice"],
+                [1950, 500, 250, 20, "ice"],
+                [1900, 400, 350, 20, "ice"],
+                [1900, 300, 430, 20, "basic"]
+            ];
+            function touches() {
+                for(let i of platforms) {
+                    if(xpos + 20 > i[0] && xpos < i[0] + i[2] && ypos + 20 > i[1] && ypos < i[1] + i[3]) {
+                        return i[4];
+                    }
+                }
+                return "";
+            }
+            function drawFlag(x, y, sx, sy) {
+                let xp = x - sx, yp = y - sy;
+                c.fillStyle = "rgb(150, 150, 150)";
+                c.fillRect(xp - 2, yp - 35, 4, 35);
+                c.fillStyle = "rgb(50, 200, 50)";
+                c.beginPath();
+                c.moveTo(xp + 2, yp - 30);
+                c.lineTo(xp - 15, yp - 38);
+                c.lineTo(xp + 2, yp - 46);
+                c.fill();
+            }
+            function frame(t) {
+                try {
+                    //////// CONTROLS //////////
+                    if(pressedKeys[keybinds.left]) xvel -= 0.08;
+                    if(pressedKeys[keybinds.right]) xvel += 0.08;
+                    /////// PHYSICS ////////////
+                    wd = 0;
+                    xpos += 3; if(touches()) wd = 1; xpos -= 6; if(touches()) wd = -1; xpos += 3;
+                    if(wd && yvel > 0.5) {yvel = 0.5 + 0.9 * (yvel - 0.5);} else {yvel += 0.15;}
+                    if(wd) wj = 3;
+                    // Yvel
+                    ypos += yvel;
+                    if(touches()) {
+                        // Undo the movement and reset velocity
+                        ypos -= yvel;
+                        yvel *= -0.01;
+                        if(yvel < 0) {
+                            grounded = 30;
+                            for(let i in charges) charges[i] = true;
+                        }
+                    } else {
+                        // Reduce grounded timer
+                        grounded = Math.max(0, grounded - 1);
+                    }
+                    // Xvel
+                    xpos += xvel;
+                    wj = Math.max(0, wj - 1);
+                    let uhOh = false;
+                    if(touches()) {
+                        // Special rules if it was a bonk
+                        let bonk = false;
+                        if(touches() == "bonk") bonk = true;
+                        if(touches() == "lava") uhOh = true;
+                        // Undo the movement and reset velocity
+                        xpos -= xvel;
+                        // Increase yvel if xvel was high (don't ask)
+                        if(Math.abs(xvel) > 1 && yvel < 0 && !bonk) yvel = Math.max((yvel - 2) * 1.5, -6.5);
+                        xvel = (bonk ? (xvel > 0 ? Math.min(-4, -xvel * 1.2) : Math.max(4, -xvel * 1.2)) : 0);
+                        if(bonk) yvel = -4;
+                    }
+                    // The ypos++ and ypos-- is needed to make sure touches() works properly
+                    ypos+=3;
+                    xvel *= (touches() == "ice" ? 0.999 : 0.98);
+                    yvel *= 0.995;
+                    // Reset?
+                    let maxX = Math.max(...platforms.map(x=>x[0]+x[2]+200));
+                    let maxY = Math.min(ypos - 150, ...platforms.map(x=>x[1]));
+                    if(ypos > 750 || ypos < Math.min(-50, maxY - 50) || xpos < -50 || xpos > Math.max(1250, maxX + 50) || touches() == "lava" || uhOh) {
+                        xpos = checkx; ypos = checky; xvel = 0; yvel = 0; started = false; if(cptime.length) btime = cptime[cptime.length - 1];
+                    }
+                    ypos-=3;
+                    ////// RENDERING ///////////
+                    c.clearRect(0, 0, 1200, 700);
+                    let scrollX = (xpos < 600 || maxX < 1200 ? 0 : (xpos + 600 > maxX ? maxX - 1200 : xpos - 600));
+                    let scrollY = (ypos > 350 || maxY > 0 ? 0 : (ypos - 350 < maxY ? maxY : ypos - 350));
+                    for(let i of platforms) {
+                        c.fillStyle = (i[4] == "ice" ? "rgb(20, 200, 240)" :
+                                      (i[4] == "lava" ? "rgb(240, 20, 20)" :
+                                      (i[4] == "bonk" ? "rgb(250, 150, 50)" : "rgb(20, 20, 20)")));
+                        c.fillRect(i[0] - scrollX, i[1] - scrollY, i[2], i[3]);
+                    }
+                    for(let f of flagPos) {
+                        drawFlag(f[0], f[1], scrollX, scrollY);
+                        // Stop the timer if the flag is reached
+                        if(xpos + 20 > f[0] && xpos < f[0] && ypos + 70 > f[1] && ypos < f[1]) {
+                            checkx = f[0] - 10; checky = f[1] - 25;
+                            if(flagPos.indexOf(f) >= cptime.length) cptime.push(t-prevt+(cptime.length?cptime[cptime.length-1]:0));
+                        }
+                    }
+                    let def = [50, 150, 250];
+                    if(changedColor) {colorTime = t; changedColor = false;}
+                    let colors = tempColor.map((x, i) => x + (def[i] - x) * Math.min(1000, (t - colorTime))/1000);
+                    c.fillStyle = "rgb(" + colors.join(", ") + ")";
+                    c.fillRect(xpos - scrollX, ypos - scrollY, 20, 20);
+                    document.getElementById("sayer").innerHTML = "Time: " + ((btime+t-prevt-16.5)/1000)
+                        .toFixed(3) + "s" + cptime.map((x,i)=>" | Checkpoint "+(i+1)+": "+(x/1000).toFixed(3)+"s").join("");
+                    if(!started) prevt = t;
+                    ///////// END /////////////
+                    window.scrollTo(0, 0);
+                    window.requestAnimationFrame(frame);
+                } catch(e) {alert("Problem: " + e);}
+            }
+            let kmode = "";
+            document.addEventListener("keydown", function(e) {
+                started = true;
+                let k = e.keyCode;
+                if(kmode) {
+                    if(true){//[37, 38, 39, 40, 90].includes(k)) {
+                        document.getElementById("tabletop").classList.remove("kmode");
+                        document.getElementById("tabletop").innerHTML = "Keybinds";
+                        keybinds[kmode] = k; keynames[kmode] = e.key; kmode = ""; showKBScreen();
+                    }
+                } else {
+                    if(k == keybinds.jump) {
+                        if(grounded) {grounded = 0; yvel = -6;}
+                        else if(wj) {wj = 0; yvel = -6; xvel = -4 * wd;}
+                    } else if(k == keybinds.dash && charges.dash) {
+                        charges.dash = false;
+                        xvel = (pressedKeys[keybinds.left] ? -1 : 1) * 6;
+                        tempColor = [250, 150, 50];
+                        changedColor = true;
+                    } else if(k == 82) {
+                        // Reset
+                        xpos = -1000; // that should do it
+                    } else if(k == 75) {
+                        showKBScreen();
+                    } else {
+                        //alert("Key pressed: " + k);
+                    }
+                }
+            });
+            function doImgClick(k) {
+                document.getElementById("tabletop").classList.add("kmode");
+                document.getElementById("tabletop").innerHTML = "Press a key to bind the <b>" + k + "</b> action to it";
+                kmode = k;
+            }
+            function showKBScreen() {
+                document.getElementById("kbs").style.display = "table";
+                for(let c of [...document.getElementById("kbody").children].filter(x=>x.id)) {
+                    c.children[1].innerHTML = ""; // Clear the tables in preparation for the next step
+                }
+                let allKeys = Object.keys(keybinds).map(x=>[keybinds[x], keynames[x]]);
+                document.getElementById("kbody").innerHTML = "<tr><td colspan='2' id='tabletop'>Keybinds</td><td id='stop' onclick='hideKBScreen()'>x</td></tr>" + allKeys.map(x=>"<tr id='kb-" + x[0] + "'><td class='tableleft'>[" + x[1] + "]</td><td class='tableright'></td></tr>").join("");
+                for(let k in keybinds) {
+                    document.getElementById("kb-" + keybinds[k]).children[1].innerHTML += " <img class='im' src='icons/" + k + ".png' onclick='doImgClick(\"" + k + "\")'>";
+                }
+            }
+            function hideKBScreen() {
+                document.getElementById("tabletop").classList.remove("kmode");
+                document.getElementById("tabletop").innerHTML = "Keybinds";
+                kmode = "";
+                document.getElementById("kbs").style.display = "none";
+            }
+            function loaded() {
+                c = document.getElementById("canv").getContext("2d");
+                window.requestAnimationFrame(frame);
+            }
+        </script>
+    </head>
+    <body onload="loaded()">
+        <div id="sayer"></div>
+        <table id="kbs" style="display:none">
+            <tbody id="kbody">
+                <tr><td colspan="2" id="tabletop">Keybinds</td><td id="stop" onclick="hideKBScreen()">x</td></tr>
+                <tr id="kb-37"><td class="tableleft">[Left Arrow]</td><td class="tableright"></td></tr>
+                <tr id="kb-38"><td class="tableleft">[Up Arrow]</td><td class="tableright"></td></tr>
+                <tr id="kb-39"><td class="tableleft">[Right Arrow]</td><td class="tableright"></td></tr>
+            </tbody>
+        </table>
+        <canvas id="canv" width="1200" height="700"></canvas>
+    </body>
+</html>
