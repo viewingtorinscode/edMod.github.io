@@ -41,6 +41,7 @@
             }
         </style>
         <script>
+            const VERSION = "v0.1.2";
             let pressedKeys = {};
             window.onkeyup = function(e) { pressedKeys[e.keyCode] = false; }
             window.onkeydown = function(e) { pressedKeys[e.keyCode] = true; }
@@ -53,7 +54,7 @@
             let charges = {dash: true}, cooldowns = {dash: 0};
             let tempColor = [50, 150, 250], colorTime = 0, changedColor = false;
             let c; // this is important.
-            let checkx = 70, checky = 550, started = false, prevt = 0, flagPos = [[1540, 0], [1930, 300]];
+            let checkx = 70, checky = 550, started = false, prevt = 0, flagPos = [[1540, 0], [2450, 230]];
             let xpos = 70, ypos = 550, xvel = 0, yvel = 0;
             let grounded = 0, wj = 0, wd = 0, cptime = [], btime = 0;
             let platforms = [
@@ -75,14 +76,14 @@
                 [1400, 0, 20, 200, "lava"],
                 [1400, 200, 20, 220, "basic"],
                 [1550, 0, 200, 20, "basic"],
-                [1880, -100, 20, 450, "lava"],
-                [1650, 150, 250, 20, "lava"],
+                [1880, -300, 20, 450, "lava"],
+                [1650, 150, 850, 20, "lava"],
                 [1550, 300, 100, 20, "lava"],
-                [1550, 600, 100, 20, "ice"],
-                [2000, 600, 150, 20, "ice"],
-                [1950, 500, 250, 20, "ice"],
-                [1900, 400, 350, 20, "ice"],
-                [1900, 300, 430, 20, "basic"]
+                [1550, 600, 220, 20, "ice"],
+                [2300, 480, 200, 20, "ice"],
+                [2150, 350, 500, 20, "ice"],
+                [1810, 230, 690, 20, "ice"],
+                [2480, 170, 20, 60, "lava"]
             ];
             function touches() {
                 for(let i of platforms) {
@@ -120,7 +121,7 @@
                         ypos -= yvel;
                         yvel *= -0.01;
                         if(yvel < 0) {
-                            grounded = 30;
+                            grounded = 15;
                             for(let i in charges) charges[i] = true;
                         }
                     } else {
@@ -178,8 +179,7 @@
                     let colors = tempColor.map((x, i) => x + (def[i] - x) * Math.min(1000, (t - colorTime))/1000);
                     c.fillStyle = "rgb(" + colors.join(", ") + ")";
                     c.fillRect(xpos - scrollX, ypos - scrollY, 20, 20);
-                    document.getElementById("sayer").innerHTML = "Time: " + ((btime+t-prevt-16.5)/1000)
-                        .toFixed(3) + "s" + cptime.map((x,i)=>" | Checkpoint "+(i+1)+": "+(x/1000).toFixed(3)+"s").join("");
+                    document.getElementById("sayer").innerHTML = "<span style='color:#999'>" + VERSION + "</span> Time: " + ((btime+t-prevt-16.5)/1000).toFixed(3) + "s" + cptime.map((x,i)=>" | Checkpoint "+(i+1)+": "+(x/1000).toFixed(3)+"s").join("");
                     if(!started) prevt = t;
                     ///////// END /////////////
                     window.scrollTo(0, 0);
@@ -205,6 +205,7 @@
                         let d = (pressedKeys[keybinds.left] ? -1 : (pressedKeys[keybinds.right] ? 1 : 0));
                         let e = (pressedKeys[keybinds.lookUp] ? -1 : (pressedKeys[keybinds.lookDown] ? 1 : 0));
                         if(!d && !e) d = 1;
+                        if(d && e) {e *= 0.7;}
                         // Check if the xvel and d have the same sign
                         xvel = d * 6;// + (xvel * d > 0 ? xvel * 0.8 : 0);
                         yvel = e * 6;
@@ -213,6 +214,8 @@
                     } else if(k == 82) {
                         // Reset
                         xpos = -1000; // that should do it
+                    } else if(k == 27) {
+                        cptime = []; checkx = 70; checky = 550; xpos = -1000;
                     } else if(k == 75) {
                         showKBScreen();
                     } else {
@@ -254,9 +257,6 @@
         <table id="kbs" style="display:none">
             <tbody id="kbody">
                 <tr><td colspan="2" id="tabletop">Keybinds</td><td id="stop" onclick="hideKBScreen()">x</td></tr>
-                <tr id="kb-37"><td class="tableleft">[Left Arrow]</td><td class="tableright"></td></tr>
-                <tr id="kb-38"><td class="tableleft">[Up Arrow]</td><td class="tableright"></td></tr>
-                <tr id="kb-39"><td class="tableleft">[Right Arrow]</td><td class="tableright"></td></tr>
             </tbody>
         </table>
         <canvas id="canv" width="1200" height="700"></canvas>
