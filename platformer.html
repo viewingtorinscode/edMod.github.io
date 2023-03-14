@@ -41,7 +41,7 @@
             }
         </style>
         <script>
-            const VERSION = "v0.1.3";
+            const VERSION = "v0.1.4";
             let pressedKeys = {};
             window.onkeyup = function(e) { pressedKeys[e.keyCode] = false; }
             window.onkeydown = function(e) { pressedKeys[e.keyCode] = true; }
@@ -118,9 +118,9 @@
                     let uhOh = false;
                     ypos += yvel;
                     if(touches()) {
+                        if(touches() == "lava") uhOh = true;
                         // Undo the movement and reset velocity
                         ypos -= yvel;
-                        if(touches() == "lava") uhOh = true;
                         yvel *= -0.01;
                         if(yvel < 0) {
                             grounded = 15;
