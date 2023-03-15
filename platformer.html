@@ -41,7 +41,7 @@
             }
         </style>
         <script>
-            const VERSION = "v0.2.1";
+            const VERSION = "v0.2.2";
             let pressedKeys = {};
             window.onkeyup = function(e) { pressedKeys[e.keyCode] = false; }
             window.onkeydown = function(e) { pressedKeys[e.keyCode] = true; }
@@ -84,7 +84,7 @@
                 [1550, 600, 220, 20, "ice"],
                 [2300, 480, 200, 20, "ice"],
                 [2150, 350, 500, 20, "ice"],
-                [1810, 230, 690, 20, "ice"],
+                [1830, 230, 670, 20, "ice"],
                 [2400, 50, 20, 120, "basic"],
                 [2480, 110, 20, 120, "lava"],
                 [2650, 110, 160, 20, "boing"],
@@ -123,7 +123,7 @@
                     if(pressedKeys[keybinds.right]) xvel += 0.08;
                     /////// PHYSICS ////////////
                     wd = 0;
-                    xpos += 3; if(touches() && touches() != "bonk") wd = 1; xpos -= 6; if(touches() && touches() != "bonk") wd = -1; xpos += 3;
+                    xpos += 2; if(touches() && touches() != "bonk") wd = 1; xpos -= 4; if(touches() && touches() != "bonk") wd = -1; xpos += 2;
                     if(wd && yvel > 0.5) {yvel = 0.5 + 0.9 * (yvel - 0.5);} else {yvel += 0.15;}
                     if(wd) wj = 3;
                     // Yvel
@@ -240,7 +240,7 @@
                         if(cptime.length) {
                             cptime = cptime.slice(0, -1);
                             checkx = (cptime.length ? flagPos[cptime.length-1][0] - 10 : 70);
-                            checky = (cptime.length ? flagPos[cptime.length-1][1] - 25 : 70);
+                            checky = (cptime.length ? flagPos[cptime.length-1][1] - 25 : 550);
                             xpos = -1000;
                         }
                     } else if(k == 75) {
