@@ -41,7 +41,7 @@
             }
         </style>
         <script>
-            const VERSION = "v0.2";
+            const VERSION = "v0.2.1";
             let pressedKeys = {};
             window.onkeyup = function(e) { pressedKeys[e.keyCode] = false; }
             window.onkeydown = function(e) { pressedKeys[e.keyCode] = true; }
@@ -114,7 +114,9 @@
                 c.lineTo(xp + 2, yp - 46);
                 c.fill();
             }
-            function frame(t) {
+            let t = 0;
+            function frame(time) {
+                t += 16.6666666667;
                 try {
                     //////// CONTROLS //////////
                     if(pressedKeys[keybinds.left]) xvel -= 0.08;
@@ -235,7 +237,12 @@
                         // Reset
                         xpos = -1000; // that should do it
                     } else if(k == 27) {
-                        if(cptime.length) {cptime = cptime.slice(0, -1);} xpos = -1000;
+                        if(cptime.length) {
+                            cptime = cptime.slice(0, -1);
+                            checkx = (cptime.length ? flagPos[cptime.length-1][0] - 10 : 70);
+                            checky = (cptime.length ? flagPos[cptime.length-1][1] - 25 : 70);
+                            xpos = -1000;
+                        }
                     } else if(k == 75) {
                         showKBScreen();
                     } else {
