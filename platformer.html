@@ -41,7 +41,7 @@
             }
         </style>
         <script>
-            const VERSION = "v0.1.4";
+            const VERSION = "v0.2";
             let pressedKeys = {};
             window.onkeyup = function(e) { pressedKeys[e.keyCode] = false; }
             window.onkeydown = function(e) { pressedKeys[e.keyCode] = true; }
@@ -54,36 +54,46 @@
             let charges = {dash: true}, cooldowns = {dash: 0};
             let tempColor = [50, 150, 250], colorTime = 0, changedColor = false;
             let c; // this is important.
-            let checkx = 70, checky = 550, started = false, prevt = 0, flagPos = [[1540, 0], [2450, 230]];
+            let checkx = 70, checky = 550, started = false, prevt = 0, flagPos = [[1540, 0], [2450, 230], [1150, -300]];
             let xpos = 70, ypos = 550, xvel = 0, yvel = 0;
-            let grounded = 0, wj = 0, wd = 0, cptime = [], btime = 0;
+            let grounded = 0, wj = 0, wd = 0, cptime = [];
             let platforms = [
                 [0, -200, 20, 800, "basic"],
-                [0, 600, 800, 20, "basic"],
-                [230, 250, 550, 20, "ice"],
-                [780, 250, 10, 350, "ice"],
-                [790, 250, 10, 350, "bonk"],
-                [800, 250, 480, 20, "lava"],
-                [1170, 400, 100, 20, "ice"],
-                [1100, 530, 20, 10, "lava"],
-                [1100, 540, 10, 80, "basic"],
-                [1110, 540, 10, 80, "bonk"],
-                [1270, 400, 130, 20, "lava"],
-                [1400, 600, 150, 20, "basic"],
+                [0, 600, 640, 20, "basic"],
+                [230, 200, 570, 20, "ice"],
+                [620, 220, 20, 380, "bonk"],
+                [800, 200, 480, 20, "lava"],
+                [980, 350, 20, 20, "lava"],
+                [1000, 350, 130, 20, "ice"],
+                [1020, 550, 20, 10, "lava"],
+                [1020, 560, 10, 60, "basic"],
+                [1030, 560, 10, 60, "bonk"],
+                [1130, 350, 270, 20, "lava"],
+                [1300, 600, 300, 20, "basic"],
                 [1530, 0, 20, 200, "basic"],
-                [1530, 200, 20, 200, "bonk"],
-                [1530, 400, 20, 200, "basic"],
+                [1530, 200, 20, 400, "basic"],
                 [1400, 0, 20, 200, "lava"],
                 [1400, 200, 20, 220, "basic"],
                 [1550, 0, 200, 20, "basic"],
                 [1880, -300, 20, 450, "lava"],
-                [1650, 150, 850, 20, "lava"],
+                [1780, -300, 100, 20, "basic"],
+                [1760, -300, 20, 100, "lava"],
+                [1780, -220, 100, 20, "lava"],
+                [1650, 150, 750, 20, "lava"],
                 [1550, 300, 100, 20, "lava"],
                 [1550, 600, 220, 20, "ice"],
                 [2300, 480, 200, 20, "ice"],
                 [2150, 350, 500, 20, "ice"],
                 [1810, 230, 690, 20, "ice"],
-                [2480, 170, 20, 60, "lava"]
+                [2400, 50, 20, 120, "basic"],
+                [2480, 110, 20, 120, "lava"],
+                [2650, 110, 160, 20, "boing"],
+                [2400, -150, 410, 20, "boing"],
+                [2650, -250, 160, 20, "lava"],
+                [2650, -230, 20, 80, "lava"],
+                [2790, -230, 20, 80, "lava"],
+                [1900, -220, 40, 20, "basic"],
+                [1050, -300, 200, 20, "basic"]
             ];
             function touches() {
                 for(let i of platforms) {
@@ -111,17 +121,19 @@
                     if(pressedKeys[keybinds.right]) xvel += 0.08;
                     /////// PHYSICS ////////////
                     wd = 0;
-                    xpos += 3; if(touches()) wd = 1; xpos -= 6; if(touches()) wd = -1; xpos += 3;
+                    xpos += 3; if(touches() && touches() != "bonk") wd = 1; xpos -= 6; if(touches() && touches() != "bonk") wd = -1; xpos += 3;
                     if(wd && yvel > 0.5) {yvel = 0.5 + 0.9 * (yvel - 0.5);} else {yvel += 0.15;}
                     if(wd) wj = 3;
                     // Yvel
                     let uhOh = false;
                     ypos += yvel;
                     if(touches()) {
-                        if(touches() == "lava") uhOh = true;
+                        let bong = false;
+                        if(touches() == "boing") bong = true;
+                        if(touches() == "lava" && yvel > 0) uhOh = true;
                         // Undo the movement and reset velocity
                         ypos -= yvel;
-                        yvel *= -0.01;
+                        yvel = (bong ? -7 : yvel * -0.01);
                         if(yvel < 0) {
                             grounded = 15;
                             for(let i in charges) charges[i] = true;
@@ -142,7 +154,7 @@
                         xpos -= xvel;
                         // Increase yvel if xvel was high (don't ask)
                         if(Math.abs(xvel) > 1 && yvel < 0 && !bonk) yvel = Math.max((yvel - 2) * 1.5, -6.5);
-                        xvel = (bonk ? (xvel > 0 ? Math.min(-4, -xvel * 1.2) : Math.max(4, -xvel * 1.2)) : 0);
+                        xvel = (bonk ? (xvel > 0 ? Math.min(-7, -xvel * 1.35) : Math.max(7, -xvel * 1.35)) : 0);
                         if(bonk) yvel = -4;
                     }
                     // The ypos++ and ypos-- is needed to make sure touches() works properly
@@ -153,7 +165,7 @@
                     let maxX = Math.max(...platforms.map(x=>x[0]+x[2]+200));
                     let maxY = Math.min(ypos - 150, ...platforms.map(x=>x[1]));
                     if(ypos > 750 || ypos < Math.min(-50, maxY - 50) || xpos < -50 || xpos > Math.max(1250, maxX + 50) || touches() == "lava" || uhOh) {
-                        xpos = checkx; ypos = checky; xvel = 0; yvel = 0; started = false; if(cptime.length) btime = cptime[cptime.length - 1];
+                        xpos = checkx; ypos = checky; xvel = 0; yvel = 0; started = false;
                         if(Object.keys(pressedKeys).filter(x => pressedKeys[x] && x != 82).length) {
                             prevt = t; started = true;
                         }
@@ -167,15 +179,19 @@
                     for(let i of platforms) {
                         c.fillStyle = (i[4] == "ice" ? "rgb(20, 200, 240)" :
                                       (i[4] == "lava" ? "rgb(240, 20, 20)" :
-                                      (i[4] == "bonk" ? "rgb(250, 150, 50)" : "rgb(20, 20, 20)")));
+                                      (i[4] == "boing" ? "rgb(50, 240, 50)" :
+                                      (i[4] == "bonk" ? "rgb(250, 150, 50)" : "rgb(20, 20, 20)"))));
                         c.fillRect(i[0] - scrollX, i[1] - scrollY, i[2], i[3]);
                     }
                     for(let f of flagPos) {
                         drawFlag(f[0], f[1], scrollX, scrollY);
-                        // Stop the timer if the flag is reached
+                        // Is flag reached?
                         if(xpos + 20 > f[0] && xpos < f[0] && ypos + 70 > f[1] && ypos < f[1]) {
-                            checkx = f[0] - 10; checky = f[1] - 25;
-                            if(flagPos.indexOf(f) >= cptime.length) cptime.push(t-prevt+(cptime.length?cptime[cptime.length-1]:0));
+                            while(flagPos.indexOf(f) >= cptime.length) {
+                                checkx = f[0] - 10; checky = f[1] - 25;
+                                cptime.push(t-prevt+(cptime.length?cptime[cptime.length-1]:0));
+                                prevt = t;
+                            }
                         }
                     }
                     let def = [50, 150, 250];
@@ -183,7 +199,7 @@
                     let colors = tempColor.map((x, i) => x + (def[i] - x) * Math.min(1000, (t - colorTime))/1000);
                     c.fillStyle = "rgb(" + colors.join(", ") + ")";
                     c.fillRect(xpos - scrollX, ypos - scrollY, 20, 20);
-                    document.getElementById("sayer").innerHTML = "<span style='color:#999'>" + VERSION + "</span> Time: " + ((btime+t-prevt-16.5)/1000).toFixed(3) + "s" + cptime.map((x,i)=>" | Checkpoint "+(i+1)+": "+(x/1000).toFixed(3)+"s").join("");
+                    document.getElementById("sayer").innerHTML = "<span style='color:#999'>" + VERSION + "</span> Time: " + (((cptime.length ? cptime[cptime.length-1] : 0)+t-prevt-16.5)/1000).toFixed(3) + "s" + cptime.map((x,i)=>" | Checkpoint "+(i+1)+": "+(x/1000).toFixed(3)+"s").join("");
                     if(!started) prevt = t;
                     ///////// END /////////////
                     window.scrollTo(0, 0);
@@ -219,7 +235,7 @@
                         // Reset
                         xpos = -1000; // that should do it
                     } else if(k == 27) {
-                        cptime = []; checkx = 70; checky = 550; xpos = -1000; btime = 0;
+                        if(cptime.length) {cptime = cptime.slice(0, -1);} xpos = -1000;
                     } else if(k == 75) {
                         showKBScreen();
                     } else {
